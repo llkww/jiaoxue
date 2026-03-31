@@ -2,7 +2,7 @@ const express = require('express');
 const { query, withTransaction } = require('../config/database');
 const { requireRoles } = require('../middlewares/auth');
 const { getPagination, buildPagination } = require('../utils/pagination');
-const { getTerms, getMajors } = require('../services/referenceService');
+const { getTerms, getMajors, getDepartments } = require('../services/referenceService');
 const { getStudentTrainingPlan, getRecommendedCourseIds } = require('../services/programPlanService');
 const { buildScheduleGrid } = require('../utils/schedule');
 const {
@@ -219,14 +219,16 @@ router.use(requireRoles('student'));
 router.get('/courses', async (req, res) => {
   const studentId = req.session.user.profileId;
   const currentTerm = res.locals.currentTerm;
-  const { keyword = '', weekday = '', course_type = '', scope = '' } = req.query;
+  const departments = await getDepartments();
+  const { keyword = '', weekday = '', course_type = '', scope = '', department_id = '' } = req.query;
   const { page, pageSize, offset } = getPagination(req.query, 12);
 
   if (!currentTerm) {
     return res.render('pages/student/courses', {
       pageTitle: '在线选课',
       sections: [],
-      filters: { keyword, weekday, course_type, scope: 'all' },
+      departments,
+      filters: { keyword, weekday, course_type, scope: 'all', department_id },
       pagination: buildPagination(0, page, pageSize),
       selectionOpen: false,
       recommendation: { hasPlan: false, currentSemesterNo: null, recommendedCourseIds: [] }
@@ -279,6 +281,11 @@ router.get('/courses', async (req, res) => {
     params.push(course_type);
   }
 
+  if (department_id) {
+    filters.push('courses.department_id = ?');
+    params.push(Number(department_id));
+  }
+
   if (activeScope === 'recommended') {
     if (recommendation.hasPlan && recommendation.recommendedCourseIds.length) {
       filters.push(`courses.id IN (${recommendation.recommendedCourseIds.map(() => '?').join(', ')})`);
@@ -320,6 +327,7 @@ router.get('/courses', async (req, res) => {
         courses.course_type,
         courses.credits,
         courses.assessment_method,
+        departments.name AS department_name,
         terms.selection_start,
         terms.selection_end,
         terms.is_current,
@@ -337,6 +345,7 @@ router.get('/courses', async (req, res) => {
         MAX(self_grade.total_score) AS self_total_score
       FROM course_sections
       INNER JOIN courses ON courses.id = course_sections.course_id
+      INNER JOIN departments ON departments.id = courses.department_id
       INNER JOIN terms ON terms.id = course_sections.term_id
       INNER JOIN teachers ON teachers.id = course_sections.teacher_id
       INNER JOIN users AS teacher_users ON teacher_users.id = teachers.user_id
@@ -363,6 +372,7 @@ router.get('/courses', async (req, res) => {
         courses.course_type,
         courses.credits,
         courses.assessment_method,
+        departments.name,
         terms.selection_start,
         terms.selection_end,
         terms.is_current,
@@ -401,7 +411,8 @@ router.get('/courses', async (req, res) => {
   return res.render('pages/student/courses', {
     pageTitle: '在线选课',
     sections: sectionRows,
-    filters: { keyword, weekday, course_type, scope: activeScope },
+    departments,
+    filters: { keyword, weekday, course_type, scope: activeScope, department_id },
     pagination: buildPagination(countRows[0]?.total || 0, page, pageSize),
     selectionOpen: Number(availabilityRows[0]?.total || 0) > 0,
     recommendation

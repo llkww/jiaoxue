@@ -69,11 +69,13 @@
       </div>
 
       <div class="program-map-scroll">
-        <div class="program-map-canvas program-map-canvas-symmetric">
-          <div class="program-map-column is-left">
+        <div class="program-tree-shell" data-program-map>
+          <svg class="program-tree-connectors" data-map-connectors aria-hidden="true"></svg>
+          <div class="program-tree-canvas" data-map-canvas>
+            <div class="program-tree-side is-left" data-map-side="left">
             <% leftSemesters.forEach(function(semester) { %>
-              <section class="program-semester-branch is-left">
-                <div class="program-branch-shell is-left">
+              <section class="program-tree-branch is-left" data-map-branch data-map-side="left">
+                <div class="program-tree-module-stack is-left" data-map-module-stack>
                   <% semester.modules.forEach(function(module) {
                     const completedCredits = module.courses
                       .filter((course) => course.status === '通过')
@@ -89,11 +91,12 @@
                       courses: module.courses
                     }));
                   %>
-                    <div class="program-branch-column">
+                    <div class="program-tree-module-item">
                       <button
                         type="button"
                         class="program-module-card program-module-card-mind"
                         style="--module-accent:#146356"
+                        data-map-module-node
                         data-plan-module-detail="<%= payload %>"
                         data-bs-toggle="modal"
                         data-bs-target="#program-plan-modal"
@@ -140,47 +143,58 @@
                   <% }) %>
                 </div>
 
-                <article class="program-semester-node program-semester-node-mind">
+                <article
+                  class="program-semester-node program-semester-node-mind program-tree-semester-card"
+                  data-map-semester-node
+                  data-map-side="left"
+                >
                   <span class="status-pill is-neutral">学期节点</span>
                   <strong>第 <%= semester.semesterNo %> 学期</strong>
                   <div class="muted-copy">点击模块卡片可查看课程详情</div>
                 </article>
               </section>
             <% }) %>
-          </div>
-
-          <article class="program-root-node program-root-node-mind program-root-node-center">
-            <div class="stack-gap-sm">
-              <span class="status-pill is-neutral">培养方案总览</span>
-              <strong><%= planDetail.plan.plan_name %></strong>
-              <div class="muted-copy"><%= profile.major_name %></div>
             </div>
-            <div class="program-root-stats">
-              <div>
-                <span>所属学院</span>
-                <strong><%= profile.department_name %></strong>
-              </div>
-              <div>
-                <span>毕业要求</span>
-                <strong><%= formatScore(summary.totalCredits) %> 学分</strong>
-              </div>
-              <div>
-                <span>完成进度</span>
-                <strong><%= formatScore(summary.completionPercent) %>%</strong>
-              </div>
-            </div>
-          </article>
 
-          <div class="program-map-column is-right">
+            <article
+              class="program-root-node program-root-node-mind program-tree-root-card"
+              data-map-root
+            >
+              <div class="stack-gap-sm">
+                <span class="status-pill is-neutral">培养方案总览</span>
+                <strong><%= planDetail.plan.plan_name %></strong>
+                <div class="muted-copy"><%= profile.major_name %></div>
+              </div>
+              <div class="program-root-stats">
+                <div>
+                  <span>所属学院</span>
+                  <strong><%= profile.department_name %></strong>
+                </div>
+                <div>
+                  <span>毕业要求</span>
+                  <strong><%= formatScore(summary.totalCredits) %> 学分</strong>
+                </div>
+                <div>
+                  <span>完成进度</span>
+                  <strong><%= formatScore(summary.completionPercent) %>%</strong>
+                </div>
+              </div>
+            </article>
+
+            <div class="program-tree-side is-right" data-map-side="right">
             <% rightSemesters.forEach(function(semester) { %>
-              <section class="program-semester-branch is-right">
-                <article class="program-semester-node program-semester-node-mind">
+              <section class="program-tree-branch is-right" data-map-branch data-map-side="right">
+                <article
+                  class="program-semester-node program-semester-node-mind program-tree-semester-card"
+                  data-map-semester-node
+                  data-map-side="right"
+                >
                   <span class="status-pill is-neutral">学期节点</span>
                   <strong>第 <%= semester.semesterNo %> 学期</strong>
                   <div class="muted-copy">点击模块卡片可查看课程详情</div>
                 </article>
 
-                <div class="program-branch-shell is-right">
+                <div class="program-tree-module-stack is-right" data-map-module-stack>
                   <% semester.modules.forEach(function(module) {
                     const completedCredits = module.courses
                       .filter((course) => course.status === '通过')
@@ -196,11 +210,12 @@
                       courses: module.courses
                     }));
                   %>
-                    <div class="program-branch-column">
+                    <div class="program-tree-module-item">
                       <button
                         type="button"
                         class="program-module-card program-module-card-mind"
                         style="--module-accent:#146356"
+                        data-map-module-node
                         data-plan-module-detail="<%= payload %>"
                         data-bs-toggle="modal"
                         data-bs-target="#program-plan-modal"
@@ -248,6 +263,7 @@
                 </div>
               </section>
             <% }) %>
+            </div>
           </div>
         </div>
       </div>

@@ -808,6 +808,52 @@ function initMajorDepartmentSync(root = document) {
   });
 }
 
+function initClassMajorSync(root = document) {
+  root.querySelectorAll('select[data-major-select]').forEach((majorSelect) => {
+    if (majorSelect.dataset.classSyncBound === 'true') {
+      return;
+    }
+
+    const targetId = majorSelect.dataset.classTarget;
+    const classSelect = targetId ? root.querySelector(`#${targetId}`) || document.getElementById(targetId) : null;
+
+    if (!(classSelect instanceof HTMLSelectElement)) {
+      return;
+    }
+
+    const sync = () => {
+      const majorId = majorSelect.value;
+      const fallbackOption = Array.from(classSelect.options).find((option) => !option.value) || null;
+      let firstVisibleValue = '';
+      let selectedStillVisible = classSelect.value === '' ? Boolean(fallbackOption) : false;
+
+      Array.from(classSelect.options).forEach((option) => {
+        const matches = !option.value || !majorId || option.dataset.majorId === majorId;
+        option.hidden = !matches;
+        option.disabled = !matches;
+
+        if (matches && option.value && !firstVisibleValue) {
+          firstVisibleValue = option.value;
+        }
+
+        if (matches && option.value === classSelect.value) {
+          selectedStillVisible = true;
+        }
+      });
+
+      if (!selectedStillVisible) {
+        classSelect.value = fallbackOption ? '' : firstVisibleValue;
+      }
+
+      rebuildEnhancedSelect(classSelect);
+    };
+
+    majorSelect.addEventListener('change', sync);
+    majorSelect.dataset.classSyncBound = 'true';
+    sync();
+  });
+}
+
 function initAdminEditorModal() {
   const modalElement = document.getElementById('admin-editor-modal');
 
@@ -881,6 +927,7 @@ function initAdminEditorModal() {
       initAuthSwitches(bodyNode);
       initFilterEnhancements(bodyNode);
       initMajorDepartmentSync(bodyNode);
+      initClassMajorSync(bodyNode);
       initGeneratedIdentityPreviews(bodyNode);
       initProtectedDeletes(bodyNode);
     } catch (error) {
@@ -959,6 +1006,7 @@ function initAdminEditorModal() {
       initAuthSwitches(bodyNode);
       initFilterEnhancements(bodyNode);
       initMajorDepartmentSync(bodyNode);
+      initClassMajorSync(bodyNode);
       initGeneratedIdentityPreviews(bodyNode);
       initProtectedDeletes(bodyNode);
     } catch (error) {
@@ -1259,6 +1307,171 @@ function initPublishGuard() {
   // 成绩发布由后端直接处理，教师端不再做前端拦截或弹窗提醒。
 }
 
+function createProgramMapSvgElement(tagName) {
+  return document.createElementNS('http://www.w3.org/2000/svg', tagName);
+}
+
+function getProgramMapAnchor(node, side, containerRect) {
+  const rect = node.getBoundingClientRect();
+
+  return {
+    x: rect.left - containerRect.left + (side === 'right' ? rect.width : 0),
+    y: rect.top - containerRect.top + rect.height / 2
+  };
+}
+
+function appendProgramMapEdge(svg, start, end) {
+  if (!svg) {
+    return;
+  }
+
+  if (Math.abs(start.x - end.x) < 0.5 && Math.abs(start.y - end.y) < 0.5) {
+    return;
+  }
+
+  const path = createProgramMapSvgElement('path');
+  path.setAttribute('class', 'program-tree-edge');
+  path.setAttribute('d', `M ${start.x.toFixed(1)} ${start.y.toFixed(1)} L ${end.x.toFixed(1)} ${end.y.toFixed(1)}`);
+  svg.appendChild(path);
+}
+
+function drawProgramMapBundle(svg, parentPoint, childPoints, side) {
+  if (!childPoints.length) {
+    return;
+  }
+
+  const pivot =
+    side === 'left'
+      ? Math.max(...childPoints.map((point) => point.x))
+      : Math.min(...childPoints.map((point) => point.x));
+  const trunkX = (parentPoint.x + pivot) / 2;
+  const yValues = [parentPoint.y, ...childPoints.map((point) => point.y)];
+  const trunkStart = { x: trunkX, y: Math.min(...yValues) };
+  const trunkEnd = { x: trunkX, y: Math.max(...yValues) };
+
+  appendProgramMapEdge(svg, parentPoint, { x: trunkX, y: parentPoint.y });
+  appendProgramMapEdge(svg, trunkStart, trunkEnd);
+
+  childPoints.forEach((point) => {
+    appendProgramMapEdge(svg, { x: trunkX, y: point.y }, point);
+  });
+}
+
+function renderProgramMap(graphElement) {
+  const svg = graphElement.querySelector('[data-map-connectors]');
+  const rootNode = graphElement.querySelector('[data-map-root]');
+
+  if (!(svg instanceof SVGElement) || !(rootNode instanceof HTMLElement)) {
+    return;
+  }
+
+  const width = Math.ceil(graphElement.clientWidth);
+  const height = Math.ceil(graphElement.clientHeight);
+
+  if (!width || !height) {
+    return;
+  }
+
+  svg.replaceChildren();
+  svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+  svg.setAttribute('width', String(width));
+  svg.setAttribute('height', String(height));
+
+  const containerRect = graphElement.getBoundingClientRect();
+
+  ['left', 'right'].forEach((side) => {
+    const branches = Array.from(graphElement.querySelectorAll(`[data-map-branch][data-map-side="${side}"]`));
+
+    if (!branches.length) {
+      return;
+    }
+
+    const semesterBundles = branches
+      .map((branch) => {
+        const semesterNode = branch.querySelector('[data-map-semester-node]');
+
+        if (!(semesterNode instanceof HTMLElement)) {
+          return null;
+        }
+
+        const incomingSide = side === 'left' ? 'right' : 'left';
+        const outgoingSide = side === 'left' ? 'left' : 'right';
+        const modulePoints = Array.from(branch.querySelectorAll('[data-map-module-node]'))
+          .filter((node) => node instanceof HTMLElement)
+          .map((node) => getProgramMapAnchor(node, outgoingSide, containerRect));
+
+        return {
+          incoming: getProgramMapAnchor(semesterNode, incomingSide, containerRect),
+          outgoing: getProgramMapAnchor(semesterNode, outgoingSide, containerRect),
+          modulePoints
+        };
+      })
+      .filter(Boolean);
+
+    if (!semesterBundles.length) {
+      return;
+    }
+
+    const rootAnchor = getProgramMapAnchor(rootNode, side === 'left' ? 'left' : 'right', containerRect);
+    drawProgramMapBundle(
+      svg,
+      rootAnchor,
+      semesterBundles.map((bundle) => bundle.incoming),
+      side
+    );
+
+    semesterBundles.forEach((bundle) => {
+      drawProgramMapBundle(svg, bundle.outgoing, bundle.modulePoints, side);
+    });
+  });
+}
+
+function initProgramPlanGraph() {
+  document.querySelectorAll('[data-program-map]').forEach((graphElement) => {
+    if (graphElement.dataset.programMapBound === 'true') {
+      return;
+    }
+
+    let frameId = 0;
+    const scheduleRender = () => {
+      if (frameId) {
+        cancelAnimationFrame(frameId);
+      }
+
+      frameId = window.requestAnimationFrame(() => {
+        frameId = 0;
+        renderProgramMap(graphElement);
+      });
+    };
+
+    if (typeof ResizeObserver !== 'undefined') {
+      const resizeObserver = new ResizeObserver(() => {
+        scheduleRender();
+      });
+
+      graphElement.querySelectorAll('[data-map-canvas], [data-map-root], [data-map-branch], [data-map-semester-node], [data-map-module-node]').forEach((node) => {
+        resizeObserver.observe(node);
+      });
+      resizeObserver.observe(graphElement);
+    }
+
+    const scrollHost = graphElement.closest('.program-map-scroll');
+    if (scrollHost) {
+      scrollHost.addEventListener('scroll', scheduleRender, { passive: true });
+    }
+
+    window.addEventListener('resize', scheduleRender);
+    window.addEventListener('load', scheduleRender, { once: true });
+
+    if (document.fonts?.ready) {
+      document.fonts.ready.then(scheduleRender).catch(() => {});
+    }
+
+    graphElement.dataset.programMapBound = 'true';
+    scheduleRender();
+  });
+}
+
 function initProgramPlanModal() {
   const modalElement = document.getElementById('program-plan-modal');
 
@@ -1513,7 +1726,9 @@ document.addEventListener('DOMContentLoaded', () => {
   initAuthSwitches();
   initFilterEnhancements();
   initMajorDepartmentSync();
+  initClassMajorSync();
   initAdminEditorModal();
+  initProgramPlanGraph();
   initProgramPlanModal();
   initStudentEvaluationModal();
   initGeneratedIdentityPreviews();

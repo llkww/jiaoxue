@@ -1,5 +1,5 @@
-<% const recommendedQuery = new URLSearchParams({ keyword: filters.keyword || '', weekday: filters.weekday || '', course_type: filters.course_type || '', scope: 'recommended' }).toString(); %>
-<% const allQuery = new URLSearchParams({ keyword: filters.keyword || '', weekday: filters.weekday || '', course_type: filters.course_type || '', scope: 'all' }).toString(); %>
+<% const recommendedQuery = new URLSearchParams({ keyword: filters.keyword || '', weekday: filters.weekday || '', course_type: filters.course_type || '', department_id: filters.department_id || '', scope: 'recommended' }).toString(); %>
+<% const allQuery = new URLSearchParams({ keyword: filters.keyword || '', weekday: filters.weekday || '', course_type: filters.course_type || '', department_id: filters.department_id || '', scope: 'all' }).toString(); %>
 <% const currentPageUrl = buildQuery() ? `/student/courses?${buildQuery()}` : '/student/courses'; %>
 
 <section class="page-grid">
@@ -43,12 +43,17 @@
         <option value="选修" <%= filters.course_type === '选修' ? 'selected' : '' %>>选修</option>
       </select>
 
-      <button class="primary-button" type="submit">筛选课程</button>
+      <select class="form-select" name="department_id">
+        <option value="">全部学院</option>
+        <% departments.forEach(function(item) { %>
+          <option value="<%= item.id %>" <%= String(filters.department_id) === String(item.id) ? 'selected' : '' %>><%= item.name %></option>
+        <% }) %>
+      </select>
+
+      <button class="primary-button filter-shell-submit" type="submit">筛选课程</button>
 
       <% if (!recommendation?.hasPlan) { %>
         <div class="w-100 muted-copy">当前专业暂无培养方案，“推荐课程”暂不可用。</div>
-      <% } else if (filters.scope === 'recommended') { %>
-        <div class="w-100 muted-copy">推荐课程只显示本学期培养方案课程，以及历史未通过且本学期有开设的课程。</div>
       <% } %>
     </form>
 
@@ -58,6 +63,7 @@
           <thead>
             <tr>
               <th>课程名称</th>
+              <th>所属学院</th>
               <th>课程号</th>
               <th>开课编号</th>
               <th>课程性质</th>
@@ -75,6 +81,7 @@
             <% sections.forEach(function(item) { const remain = item.capacity - item.selected_count; %>
               <tr>
                 <td><strong><%= item.course_name %></strong></td>
+                <td><%= item.department_name %></td>
                 <td><%= item.course_code %></td>
                 <td><%= item.section_code %></td>
                 <td><span class="status-pill <%= badgeClass(item.course_type) %>"><%= item.course_type %></span></td>
@@ -138,7 +145,7 @@
         description:
           filters.scope === 'recommended'
             ? recommendation?.hasPlan
-              ? '当前推荐列表下没有可显示的本学期开课记录。'
+              ? '当前推荐列表下没有符合规则且本学期开放选课的课程。'
               : '当前专业暂无培养方案，推荐课程暂不可用。'
             : '当前筛选条件下没有可显示的开课记录。',
         icon: 'solar:book-bookmark-linear'

@@ -9,6 +9,7 @@ const createSessionMiddleware = require('./config/session');
 const flashMiddleware = require('./middlewares/flash');
 const localsMiddleware = require('./middlewares/locals');
 const { ping } = require('./config/database');
+const { ensureRuntimeSchema } = require('./services/schemaService');
 
 const indexRoutes = require('./routes/index');
 const authRoutes = require('./routes/auth');
@@ -81,6 +82,16 @@ app.use((error, req, res, next) => {
 app.listen(config.port, async () => {
   try {
     await ping();
+    try {
+      const schemaUpdates = await ensureRuntimeSchema();
+
+      if (schemaUpdates.classesClassCodeScopeUpdated) {
+        console.log('已同步 classes 表的班号约束范围。');
+      }
+    } catch (schemaError) {
+      console.warn(`数据库已连接，但运行时结构同步失败：${schemaError.message}`);
+    }
+
     console.log(`教学管理系统已启动：http://localhost:${config.port}`);
   } catch (error) {
     console.warn('应用已启动，但数据库尚未连通，请先执行 npm run init-db。');

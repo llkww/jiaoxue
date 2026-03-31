@@ -81,8 +81,8 @@ CREATE TABLE IF NOT EXISTS classes (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uk_classes_name (major_id, grade_year, class_name),
-  UNIQUE KEY uk_classes_code (grade_year, class_code),
   KEY idx_classes_major_grade (major_id, grade_year),
+  KEY idx_classes_grade_code (grade_year, class_code),
   CONSTRAINT fk_classes_major
     FOREIGN KEY (major_id) REFERENCES majors (id)
     ON UPDATE CASCADE
@@ -279,6 +279,7 @@ CREATE TABLE IF NOT EXISTS training_plan_courses (
   UNIQUE KEY uk_training_plan_module_course (module_id, course_id),
   KEY idx_training_plan_courses_semester (training_plan_id, recommended_semester),
   KEY idx_training_plan_courses_module_plan (module_id, training_plan_id),
+  KEY idx_training_plan_courses_course_plan (course_id, training_plan_id),
   CONSTRAINT fk_training_plan_courses_plan
     FOREIGN KEY (training_plan_id) REFERENCES training_plans (id)
     ON UPDATE CASCADE
@@ -308,6 +309,7 @@ CREATE TABLE IF NOT EXISTS announcements (
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   KEY idx_announcements_target (target_role, priority),
   KEY idx_announcements_student (target_student_id),
+  KEY idx_announcements_published_by (published_by),
   KEY idx_announcements_published (published_at),
   CONSTRAINT fk_announcements_user
     FOREIGN KEY (published_by) REFERENCES users (id)
@@ -336,8 +338,11 @@ CREATE TABLE IF NOT EXISTS course_sections (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   KEY idx_sections_term_status (term_id, selection_status),
+  KEY idx_sections_term_status_course (term_id, selection_status, course_id),
   KEY idx_sections_course_term (course_id, term_id),
   KEY idx_sections_teacher_term (teacher_id, term_id),
+  KEY idx_sections_classroom_term (classroom_id, term_id),
+  KEY idx_sections_time_slot (time_slot_id),
   KEY idx_sections_id_teacher (id, teacher_id),
   UNIQUE KEY uk_sections_teacher_slot (term_id, teacher_id, time_slot_id),
   UNIQUE KEY uk_sections_classroom_slot (term_id, classroom_id, time_slot_id),
@@ -470,6 +475,9 @@ CREATE TABLE IF NOT EXISTS academic_warnings (
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uk_warning_student_term (student_id, term_id),
   KEY idx_warnings_student_created (student_id, created_at),
+  KEY idx_warnings_term (term_id),
+  KEY idx_warnings_admin (issued_by),
+  KEY idx_warnings_announcement (announcement_id),
   CONSTRAINT fk_warnings_student
     FOREIGN KEY (student_id) REFERENCES students (id)
     ON UPDATE CASCADE

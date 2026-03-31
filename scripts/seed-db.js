@@ -10,6 +10,7 @@ const {
   ANNOUNCEMENT_PRIORITY,
   ANNOUNCEMENT_CATEGORY
 } = require('../utils/system');
+const { buildStandardTimeSlots } = require('../utils/timeSlots');
 
 const ADMIN_HASH = '$2a$10$4yHWAUZxeLomRdY0qASzpeiLL7rz1Y4zylhcDYqqxEZbxXE5RtVkC';
 const TEACHER_HASH = '$2a$10$gPEwwusL6U0E.cs4UFvcb.rlrE1vehsDMTdiaLOVV9XFTUWjp/PEG';
@@ -264,16 +265,6 @@ const TEACHER_BY_COURSE = {
   GE2301: 7, GE2302: 7, GE2303: 7, GE2304: 8, GE2305: 8
 };
 
-const SLOT_BLOCKS = [
-  { startPeriod: 1, endPeriod: 2, startTime: '08:00:00', endTime: '09:35:00' },
-  { startPeriod: 3, endPeriod: 4, startTime: '10:00:00', endTime: '11:35:00' },
-  { startPeriod: 5, endPeriod: 6, startTime: '14:00:00', endTime: '15:35:00' },
-  { startPeriod: 7, endPeriod: 8, startTime: '16:00:00', endTime: '17:35:00' },
-  { startPeriod: 9, endPeriod: 10, startTime: '19:00:00', endTime: '20:35:00' }
-];
-
-const WEEKDAY_LABELS = ['周一', '周二', '周三', '周四', '周五'];
-
 function pad2(value) {
   return String(value).padStart(2, '0');
 }
@@ -287,25 +278,15 @@ function insertRows(connection, table, columns, rows) {
 }
 
 function buildTimeSlots() {
-  const rows = [];
-  let id = 1;
-
-  for (let weekday = 1; weekday <= 5; weekday += 1) {
-    SLOT_BLOCKS.forEach((block) => {
-      rows.push([
-        id,
-        weekday,
-        block.startPeriod,
-        block.endPeriod,
-        block.startTime,
-        block.endTime,
-        `${WEEKDAY_LABELS[weekday - 1]} 第${block.startPeriod}-${block.endPeriod}节`
-      ]);
-      id += 1;
-    });
-  }
-
-  return rows;
+  return buildStandardTimeSlots({ withIds: true }).map((slot) => [
+    slot.id,
+    slot.weekday,
+    slot.startPeriod,
+    slot.endPeriod,
+    slot.startTime,
+    slot.endTime,
+    slot.label
+  ]);
 }
 
 function buildCourseRows() {
@@ -461,7 +442,7 @@ function buildAnnouncements() {
     [4, '全校课表查询支持单课课表视图', '查看详情后可直接查看该课程在课表中的独立排布，便于比较时段与教室安排。', ANNOUNCEMENT_CATEGORY.GENERAL, TARGET_ROLE.ALL, null, ANNOUNCEMENT_PRIORITY.NORMAL, 1, '2026-03-11 09:40:00'],
     [5, '教师成绩册开启自动保存', '教师端成绩册支持自动保存，并联动计算总评、等级与绩点。', ANNOUNCEMENT_CATEGORY.TEACHING, TARGET_ROLE.TEACHER, null, ANNOUNCEMENT_PRIORITY.IMPORTANT, 1, '2026-03-13 15:10:00'],
     [6, '管理端删除校验已与数据库约束统一', '管理端删除前会先检查关联数据，数据库层使用外键与限制性约束，避免误删。', ANNOUNCEMENT_CATEGORY.GENERAL, TARGET_ROLE.ADMIN, null, ANNOUNCEMENT_PRIORITY.IMPORTANT, 1, '2026-03-16 11:20:00'],
-    [7, '在线选课推荐课程规则更新', '推荐课程仅显示当前学期开设、且属于本学期培养方案要求或历史未通过且当前学期已开放重修的课程。', ANNOUNCEMENT_CATEGORY.TEACHING, TARGET_ROLE.STUDENT, null, ANNOUNCEMENT_PRIORITY.IMPORTANT, 1, '2026-03-20 08:30:00'],
+    [7, '在线选课推荐课程规则更新', '推荐课程现按“本学期应修、此前学期未修、历史修读未通过且尚未通过”三类规则联合生成，并且只显示本学期已开设的课程。', ANNOUNCEMENT_CATEGORY.TEACHING, TARGET_ROLE.STUDENT, null, ANNOUNCEMENT_PRIORITY.IMPORTANT, 1, '2026-03-20 08:30:00'],
     [8, '教学系统演示数据已重置', '当前演示账号已按 2023 级培养方案重置，推荐课程、学业预警、成绩发布与培养方案地图均可直接演示。', ANNOUNCEMENT_CATEGORY.GENERAL, TARGET_ROLE.ALL, null, ANNOUNCEMENT_PRIORITY.NORMAL, 1, '2026-03-24 16:00:00'],
     [9, '学业预警通知 · 张晨曦', '系统检测到你在 2025-2026 学年第一学期结束后仍有 6 门必修课程未通过，请尽快联系辅导员并制定重修计划。', ANNOUNCEMENT_CATEGORY.WARNING, TARGET_ROLE.STUDENT, 1, ANNOUNCEMENT_PRIORITY.URGENT, 1, '2026-01-20 10:30:00'],
     [10, '重修课程开放提醒 · 张晨曦', '你名下的《编译原理》等历史未通过课程已在当前学期开放重修选课，请及时确认课表并安排学习进度。', ANNOUNCEMENT_CATEGORY.TEACHING, TARGET_ROLE.STUDENT, 1, ANNOUNCEMENT_PRIORITY.IMPORTANT, 1, '2026-02-25 08:45:00']

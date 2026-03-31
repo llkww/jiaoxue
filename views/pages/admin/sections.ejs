@@ -17,6 +17,12 @@
           <option value="<%= item.id %>" <%= String(filters.term_id) === String(item.id) ? 'selected' : '' %>><%= item.name %></option>
         <% }) %>
       </select>
+      <select class="form-select" name="department_id">
+        <option value="">全部学院</option>
+        <% departments.forEach(function(item) { %>
+          <option value="<%= item.id %>" <%= String(filters.department_id) === String(item.id) ? 'selected' : '' %>><%= item.name %></option>
+        <% }) %>
+      </select>
       <select class="form-select" name="course_type">
         <option value="">全部课程性质</option>
         <option value="必修" <%= filters.course_type === '必修' ? 'selected' : '' %>>必修</option>
@@ -28,7 +34,7 @@
         <option value="暂停选课" <%= filters.status === '暂停选课' ? 'selected' : '' %>>暂停选课</option>
         <option value="已归档" <%= filters.status === '已归档' ? 'selected' : '' %>>已归档</option>
       </select>
-      <button class="primary-button" type="submit">筛选开课</button>
+      <button class="primary-button filter-shell-submit" type="submit">筛选开课</button>
     </form>
 
     <% if (sections.length) { %>
@@ -37,6 +43,7 @@
           <thead>
             <tr>
               <th>课程名称</th>
+              <th>所属学院</th>
               <th>课程号</th>
               <th>开课编号</th>
               <th>教师</th>
@@ -53,6 +60,7 @@
             <% sections.forEach(function(item) { const archived = item.selection_status === '已归档'; %>
               <tr>
                 <td><strong><%= item.course_name %></strong></td>
+                <td><%= item.department_name %></td>
                 <td><%= item.course_code %></td>
                 <td><%= item.section_code %></td>
                 <td><%= item.teacher_name %></td>

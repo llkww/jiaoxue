@@ -11,13 +11,33 @@
 
     <form class="filter-shell mb-4" method="get">
       <input class="form-control" name="keyword" placeholder="搜索学号、姓名或账号" value="<%= filters.keyword %>" />
-      <select class="form-select" name="class_id">
-        <option value="">全部班级</option>
-        <% classes.forEach(function(item) { %>
-          <option value="<%= item.id %>" <%= String(filters.class_id) === String(item.id) ? 'selected' : '' %>><%= item.class_name %></option>
+      <select
+        class="form-select"
+        id="student-major-filter"
+        name="major_id"
+        data-major-select
+        data-class-target="student-class-filter"
+      >
+        <option value="">全部专业</option>
+        <% majors.forEach(function(item) { %>
+          <option value="<%= item.id %>" <%= String(filters.major_id) === String(item.id) ? 'selected' : '' %>>
+            <%= item.department_name %> / <%= item.name %>
+          </option>
         <% }) %>
       </select>
-      <button class="primary-button" type="submit">筛选学生</button>
+      <select class="form-select" id="student-class-filter" name="class_id">
+        <option value="">全部班级</option>
+        <% classes.forEach(function(item) { %>
+          <option
+            value="<%= item.id %>"
+            data-major-id="<%= item.major_id %>"
+            <%= String(filters.class_id) === String(item.id) ? 'selected' : '' %>
+          >
+            <%= item.class_name %>
+          </option>
+        <% }) %>
+      </select>
+      <button class="primary-button filter-shell-submit" type="submit">筛选学生</button>
     </form>
 
     <% if (students.length) { %>

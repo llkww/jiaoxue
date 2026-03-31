@@ -369,7 +369,7 @@ erDiagram
 ### 7.4.4 索引与约束
 
 - `UNIQUE uk_classes_name (major_id, grade_year, class_name)`：同专业同年级下班级名唯一
-- `UNIQUE uk_classes_code (grade_year, class_code)`：同年级下班号唯一
+- `INDEX idx_classes_grade_code (grade_year, class_code)`：支撑按年级和班号的快速检索；“同年级同学院下班号唯一”由写入逻辑结合 `majors.department_id` 严格校验，避免在 `classes` 表冗余存储学院字段而引入同步异常
 - `KEY idx_classes_major_grade (major_id, grade_year)`：支持按专业和年级查班级
 
 ### 7.4.5 代码中的主要用途

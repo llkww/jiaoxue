@@ -1,4 +1,5 @@
 const { query } = require('../config/database');
+const { buildStandardTimeSlots } = require('../utils/timeSlots');
 
 async function getCurrentTerm() {
   const rows = await query(
@@ -120,7 +121,39 @@ async function getClassrooms() {
   );
 }
 
+async function ensureStandardTimeSlots() {
+  const slots = buildStandardTimeSlots();
+
+  if (!slots.length) {
+    return;
+  }
+
+  const placeholders = slots.map(() => '(?, ?, ?, ?, ?, ?)').join(', ');
+  const params = slots.flatMap((slot) => [
+    slot.weekday,
+    slot.startPeriod,
+    slot.endPeriod,
+    slot.startTime,
+    slot.endTime,
+    slot.label
+  ]);
+
+  await query(
+    `
+      INSERT INTO time_slots (weekday, start_period, end_period, start_time, end_time, label)
+      VALUES ${placeholders}
+      ON DUPLICATE KEY UPDATE
+        start_time = VALUES(start_time),
+        end_time = VALUES(end_time),
+        label = VALUES(label)
+    `,
+    params
+  );
+}
+
 async function getTimeSlots() {
+  await ensureStandardTimeSlots();
+
   return query(
     `
       SELECT *

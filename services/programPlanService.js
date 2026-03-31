@@ -1,5 +1,5 @@
 const { query } = require('../config/database');
-const { ENROLLMENT_STATUS, GRADE_STATUS } = require('../utils/system');
+const { ENROLLMENT_STATUS, GRADE_STATUS, SECTION_STATUS } = require('../utils/system');
 
 function getRunner(connection = null) {
   if (connection) {
@@ -261,6 +261,14 @@ async function getStudentCourseProgress(studentId, currentTermId = null) {
         course_sections.course_id,
         MAX(CASE WHEN grades.status = ? AND grades.total_score >= 60 THEN 1 ELSE 0 END) AS passed_count,
         SUM(CASE WHEN grades.status = ? AND grades.total_score < 60 THEN 1 ELSE 0 END) AS failed_attempts,
+        SUM(
+          CASE
+            WHEN ? IS NULL THEN 0
+            WHEN course_sections.term_id <> ? THEN 1
+            ELSE 0
+          END
+        ) AS historical_attempts,
+        COUNT(*) AS attempt_count,
         MAX(
           CASE
             WHEN enrollments.status = ?
@@ -285,6 +293,8 @@ async function getStudentCourseProgress(studentId, currentTermId = null) {
     [
       GRADE_STATUS.PUBLISHED,
       GRADE_STATUS.PUBLISHED,
+      currentTermId,
+      currentTermId,
       ENROLLMENT_STATUS.SELECTED,
       currentTermId,
       currentTermId,
@@ -377,6 +387,8 @@ async function getTrainingPlanDetail(planId, studentId = null, currentTermId = n
       status,
       isSelectedCurrent,
       hasOutstandingFailure: outstandingFailure,
+      historicalAttempts: Number(progress?.historical_attempts || 0),
+      attemptCount: Number(progress?.attempt_count || 0),
       score: normalizeScore(progress?.best_score),
       gradePoint: normalizeScore(progress?.best_grade_point),
       latestTermName: progress?.latest_term_name || null,
@@ -467,6 +479,24 @@ async function getStudentTrainingPlan(studentId, currentTermId = null) {
   };
 }
 
+async function getCurrentTermOpenCourseIds(currentTermId) {
+  if (!currentTermId) {
+    return new Set();
+  }
+
+  const rows = await query(
+    `
+      SELECT DISTINCT course_id
+      FROM course_sections
+      WHERE term_id = ?
+        AND selection_status = ?
+    `,
+    [currentTermId, SECTION_STATUS.OPEN]
+  );
+
+  return new Set(rows.map((item) => Number(item.course_id)));
+}
+
 async function getRecommendedCourseIds(studentId, currentTermId) {
   const data = await getStudentTrainingPlan(studentId, currentTermId);
 
@@ -479,15 +509,26 @@ async function getRecommendedCourseIds(studentId, currentTermId) {
   }
 
   const currentSemesterNo = Number(data.currentSemesterNo || 0);
+  const currentTermOpenCourseIds = await getCurrentTermOpenCourseIds(currentTermId);
   const ids = new Set();
 
   data.planDetail.modules.forEach((module) => {
     module.courses.forEach((course) => {
-      if (course.recommendedSemester === currentSemesterNo) {
-        ids.add(course.id);
+      if (!currentTermOpenCourseIds.has(course.id) || course.status === '通过') {
+        return;
       }
 
-      if (Number(course.failedAttempts || 0) > 0 && course.status !== '通过') {
+      const isCurrentSemesterCourse = course.recommendedSemester === currentSemesterNo;
+      const isPastSemesterCourse = course.recommendedSemester < currentSemesterNo;
+      const hasOutstandingFailure = Number(course.failedAttempts || 0) > 0;
+      const hasNoHistoricalAttempt = Number(course.historicalAttempts || 0) === 0;
+
+      if (isCurrentSemesterCourse) {
+        ids.add(course.id);
+        return;
+      }
+
+      if (isPastSemesterCourse && (hasOutstandingFailure || hasNoHistoricalAttempt)) {
         ids.add(course.id);
       }
     });

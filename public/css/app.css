@@ -564,6 +564,10 @@ textarea {
   min-height: 56px;
 }
 
+.filter-shell-submit {
+  margin-left: auto;
+}
+
 .filter-shell .form-select,
 .filter-native-select {
   appearance: none;
@@ -2957,7 +2961,7 @@ textarea {
   text-align: left;
 }
 
-.section-head > :last-child {
+.section-head > :last-child:not(:only-child) {
   justify-self: end;
 }
 
@@ -3958,4 +3962,104 @@ textarea {
   .program-branch-shell.is-right {
     padding: 0;
   }
+}
+
+.program-map-scroll {
+  overflow-x: auto;
+  overflow-y: visible;
+  padding-bottom: 14px;
+}
+
+.program-tree-shell {
+  position: relative;
+  min-width: 1600px;
+  padding: 28px 20px 36px;
+  overflow: visible;
+  isolation: isolate;
+}
+
+.program-tree-connectors {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.program-tree-edge {
+  fill: none;
+  stroke: rgba(20, 99, 86, 0.46);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 10px rgba(20, 99, 86, 0.12));
+}
+
+.program-tree-canvas {
+  min-width: 1560px;
+  display: grid;
+  grid-template-columns: minmax(520px, 1fr) 320px minmax(520px, 1fr);
+  gap: 52px;
+  align-items: center;
+}
+
+.program-tree-side {
+  display: grid;
+  gap: 34px;
+  align-content: center;
+  min-width: 0;
+}
+
+.program-tree-branch {
+  display: grid;
+  gap: 28px;
+  align-items: center;
+  min-width: 0;
+}
+
+.program-tree-branch.is-left {
+  grid-template-columns: minmax(0, 1fr) 220px;
+}
+
+.program-tree-branch.is-right {
+  grid-template-columns: 220px minmax(0, 1fr);
+}
+
+.program-tree-module-stack {
+  display: grid;
+  gap: 18px;
+  align-content: start;
+  min-width: 0;
+}
+
+.program-tree-module-item {
+  min-width: 0;
+}
+
+.program-tree-root-card,
+.program-tree-semester-card,
+.program-tree-module-item > .program-module-card {
+  position: relative;
+  z-index: 1;
+}
+
+.program-tree-root-card {
+  align-self: center;
+}
+
+.program-tree-semester-card {
+  min-height: 132px;
+  padding: 18px 20px;
+  gap: 10px;
+  justify-items: center;
+  text-align: center;
+}
+
+[data-program-map] .program-root-node::after,
+[data-program-map] .program-semester-node::after,
+[data-program-map] .program-module-card::before {
+  display: none;
 }

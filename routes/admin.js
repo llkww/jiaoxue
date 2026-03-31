@@ -105,6 +105,41 @@ async function ensureSectionConflict({ termId, timeSlotId, teacherId, classroomI
   return rows[0] || null;
 }
 
+async function getSectionSelectableTerms() {
+  return query(
+    `
+      SELECT *
+      FROM terms
+      WHERE is_current = 1
+         OR status = ?
+      ORDER BY is_current DESC, start_date DESC, id DESC
+    `,
+    [TERM_STATUS.PLANNING]
+  );
+}
+
+async function isSectionSelectableTerm(termId) {
+  if (!termId) {
+    return false;
+  }
+
+  const rows = await query(
+    `
+      SELECT id
+      FROM terms
+      WHERE id = ?
+        AND (
+          is_current = 1
+          OR status = ?
+        )
+      LIMIT 1
+    `,
+    [Number(termId), TERM_STATUS.PLANNING]
+  );
+
+  return rows.length > 0;
+}
+
 function getSafeReturnPath(value, fallback) {
   if (typeof value === 'string' && value.startsWith('/admin/')) {
     return value;
@@ -223,7 +258,7 @@ async function getMajorById(majorId, connection = null) {
 
   const rows = await runner.query(
     `
-      SELECT id, name
+      SELECT id, name, department_id
       FROM majors
       WHERE id = ?
       LIMIT 1
@@ -434,6 +469,47 @@ async function buildClassName({ majorId, gradeYear, classCode }, connection = nu
   return `${major.name} ${Number(gradeYear)}级${getClassDisplayNo(classCode)}班`;
 }
 
+async function findDepartmentClassCodeConflict({ majorId, gradeYear, classCode, excludeClassId = 0 }, connection = null) {
+  const major = await getMajorById(majorId, connection);
+
+  if (!major) {
+    return { major: null, conflict: null };
+  }
+
+  const runner = connection
+    ? {
+        async query(sql, params = []) {
+          const [rows] = await connection.query(sql, params);
+          return rows;
+        }
+      }
+    : { query };
+
+  const rows = await runner.query(
+    `
+      SELECT
+        classes.id,
+        classes.class_name,
+        majors.name AS major_name,
+        departments.name AS department_name
+      FROM classes
+      INNER JOIN majors ON majors.id = classes.major_id
+      INNER JOIN departments ON departments.id = majors.department_id
+      WHERE majors.department_id = ?
+        AND classes.grade_year = ?
+        AND classes.class_code = ?
+        AND classes.id <> ?
+      LIMIT 1
+    `,
+    [Number(major.department_id), Number(gradeYear), classCode, Number(excludeClassId) || 0]
+  );
+
+  return {
+    major,
+    conflict: rows[0] || null
+  };
+}
+
 async function getClassEntryYear(classId, connection = null) {
   if (!classId) {
     return null;
@@ -494,31 +570,6 @@ async function getSectionDeleteSummary(sectionId) {
   );
 
   return rows[0] || null;
-}
-
-async function deleteSectionManually(sectionId) {
-  return withTransaction(async (connection) => {
-    const [evaluationResult] = await connection.execute('DELETE FROM teaching_evaluations WHERE section_id = ?', [sectionId]);
-
-    const [gradeResult] = await connection.execute(
-      `
-        DELETE grades
-        FROM grades
-        INNER JOIN enrollments ON enrollments.id = grades.enrollment_id
-        WHERE enrollments.section_id = ?
-      `,
-      [sectionId]
-    );
-
-    const [enrollmentResult] = await connection.execute('DELETE FROM enrollments WHERE section_id = ?', [sectionId]);
-    await connection.execute('DELETE FROM course_sections WHERE id = ?', [sectionId]);
-
-    return {
-      evaluationCount: evaluationResult.affectedRows || 0,
-      gradeCount: gradeResult.affectedRows || 0,
-      enrollmentCount: enrollmentResult.affectedRows || 0
-    };
-  });
 }
 
 async function getOutstandingRequiredCourses(studentId) {
@@ -755,15 +806,23 @@ router.post('/users/:userId/reset-password', async (req, res) => {
 });
 
 router.get('/students', async (req, res) => {
-  const classes = await getClasses();
-  const { keyword = '', class_id = '' } = req.query;
+  const [majors, allClasses] = await Promise.all([getMajors(), getClasses()]);
+  const { keyword = '', major_id = '', class_id = '' } = req.query;
   const { page, pageSize, offset } = getPagination(req.query, 10);
   const filters = ['1 = 1'];
   const params = [];
+  const classes = major_id
+    ? allClasses.filter((item) => String(item.major_id) === String(major_id))
+    : allClasses;
 
   if (keyword) {
     filters.push('(students.student_no LIKE ? OR users.full_name LIKE ? OR users.username LIKE ?)');
     params.push(`%${keyword}%`, `%${keyword}%`, `%${keyword}%`);
+  }
+
+  if (major_id) {
+    filters.push('classes.major_id = ?');
+    params.push(Number(major_id));
   }
 
   if (class_id) {
@@ -777,6 +836,7 @@ router.get('/students', async (req, res) => {
       SELECT COUNT(*) AS total
       FROM students
       INNER JOIN users ON users.id = students.user_id
+      INNER JOIN classes ON classes.id = students.class_id
       WHERE ${whereClause}
     `,
     params
@@ -812,8 +872,9 @@ router.get('/students', async (req, res) => {
   return res.render('pages/admin/students', {
     pageTitle: '学生管理',
     students,
+    majors,
     classes,
-    filters: { keyword, class_id },
+    filters: { keyword, major_id, class_id },
     returnTo: req.originalUrl,
     pagination: buildPagination(countRows[0]?.total || 0, page, pageSize)
   });
@@ -1011,39 +1072,41 @@ router.put('/students/:studentId/legacy-edit', async (req, res) => {
 router.delete('/students/:studentId', async (req, res) => {
   const studentId = Number(req.params.studentId);
   const redirectPath = getSafeReturnPath(req.body.return_to, '/admin/students');
+  const studentRows = await query('SELECT user_id FROM students WHERE id = ? LIMIT 1', [studentId]);
+  const student = studentRows[0];
+
+  if (!student) {
+    req.flash('danger', '学生记录不存在。');
+    return res.redirect(redirectPath);
+  }
+
+  const [enrollmentCount, evaluationCount, warningCount, announcementCount] = await Promise.all([
+    getCount('SELECT COUNT(*) AS total FROM enrollments WHERE student_id = ?', [studentId]),
+    getCount('SELECT COUNT(*) AS total FROM teaching_evaluations WHERE student_id = ?', [studentId]),
+    getCount('SELECT COUNT(*) AS total FROM academic_warnings WHERE student_id = ?', [studentId]),
+    getCount('SELECT COUNT(*) AS total FROM announcements WHERE target_student_id = ?', [studentId])
+  ]);
+  const dependencySummary = summarizeDependencies([
+    { label: '选课记录', total: enrollmentCount },
+    { label: '教学评价', total: evaluationCount },
+    { label: '学业预警', total: warningCount },
+    { label: '定向公告', total: announcementCount }
+  ]);
+
+  if (dependencySummary) {
+    req.flash('danger', `学生仍有关联数据，暂时无法删除：${dependencySummary}。`);
+    return res.redirect(redirectPath);
+  }
 
   try {
     await withTransaction(async (connection) => {
-      const [studentRows] = await connection.query('SELECT user_id FROM students WHERE id = ? LIMIT 1', [studentId]);
-      const student = studentRows[0];
-
-      if (!student) {
-        throw new Error('student_not_found');
-      }
-
-      await connection.execute('DELETE FROM teaching_evaluations WHERE student_id = ?', [studentId]);
-      await connection.execute(
-        `
-          DELETE grades
-          FROM grades
-          INNER JOIN enrollments ON enrollments.id = grades.enrollment_id
-          WHERE enrollments.student_id = ?
-        `,
-        [studentId]
-      );
-      await connection.execute('DELETE FROM enrollments WHERE student_id = ?', [studentId]);
-      await connection.execute('DELETE FROM academic_warnings WHERE student_id = ?', [studentId]);
       await connection.execute('DELETE FROM students WHERE id = ?', [studentId]);
       await connection.execute('DELETE FROM users WHERE id = ?', [student.user_id]);
     });
 
     req.flash('success', '学生记录已删除。');
   } catch (error) {
-    if (error.message === 'student_not_found') {
-      req.flash('danger', '学生记录不存在。');
-    } else {
-      req.flash('danger', '学生记录删除失败，请确认不存在关联数据后重试。');
-    }
+    req.flash('danger', '学生记录删除失败，请确认不存在关联数据后重试。');
   }
 
   return res.redirect(redirectPath);
@@ -1499,39 +1562,37 @@ router.put('/teachers/:teacherId', async (req, res) => {
 router.delete('/teachers/:teacherId', async (req, res) => {
   const teacherId = Number(req.params.teacherId);
   const redirectPath = getSafeReturnPath(req.body.return_to, '/admin/teachers');
+  const teacherRows = await query('SELECT user_id FROM teachers WHERE id = ? LIMIT 1', [teacherId]);
+  const teacher = teacherRows[0];
+
+  if (!teacher) {
+    req.flash('danger', '教师记录不存在。');
+    return res.redirect(redirectPath);
+  }
+
+  const [sectionCount, evaluationCount] = await Promise.all([
+    getCount('SELECT COUNT(*) AS total FROM course_sections WHERE teacher_id = ?', [teacherId]),
+    getCount('SELECT COUNT(*) AS total FROM teaching_evaluations WHERE teacher_id = ?', [teacherId])
+  ]);
+  const dependencySummary = summarizeDependencies([
+    { label: '开课记录', total: sectionCount },
+    { label: '教学评价', total: evaluationCount }
+  ]);
+
+  if (dependencySummary) {
+    req.flash('danger', `该教师仍有关联数据，暂时无法删除：${dependencySummary}。`);
+    return res.redirect(redirectPath);
+  }
 
   try {
     await withTransaction(async (connection) => {
-      const [teacherRows] = await connection.query('SELECT user_id FROM teachers WHERE id = ? LIMIT 1', [teacherId]);
-      const teacher = teacherRows[0];
-
-      if (!teacher) {
-        throw new Error('teacher_not_found');
-      }
-
-      const [sectionRows] = await connection.query(
-        'SELECT COUNT(*) AS total FROM course_sections WHERE teacher_id = ?',
-        [teacherId]
-      );
-
-      if (Number(sectionRows[0]?.total || 0) > 0) {
-        throw new Error('teacher_has_sections');
-      }
-
-      await connection.execute('DELETE FROM teaching_evaluations WHERE teacher_id = ?', [teacherId]);
       await connection.execute('DELETE FROM teachers WHERE id = ?', [teacherId]);
       await connection.execute('DELETE FROM users WHERE id = ?', [teacher.user_id]);
     });
 
     req.flash('success', '教师记录已删除。');
   } catch (error) {
-    if (error.message === 'teacher_not_found') {
-      req.flash('danger', '教师记录不存在。');
-    } else if (error.message === 'teacher_has_sections') {
-      req.flash('danger', '该教师仍有关联教学任务，无法删除。');
-    } else {
-      req.flash('danger', '教师记录删除失败，请稍后重试。');
-    }
+    req.flash('danger', '教师记录删除失败，请稍后重试。');
   }
 
   return res.redirect(redirectPath);
@@ -1791,14 +1852,15 @@ router.delete('/courses/:courseId', async (req, res) => {
 });
 
 router.get('/sections', async (req, res) => {
-  const [courses, teachers, terms, classrooms, timeSlots] = await Promise.all([
+  const [departments, courses, teachers, terms, classrooms, timeSlots] = await Promise.all([
+    getDepartments(),
     getCourses(),
     getTeachers(),
     getTerms(),
     getClassrooms(),
     getTimeSlots()
   ]);
-  const { keyword = '', term_id = '', status = '', course_type = '' } = req.query;
+  const { keyword = '', term_id = '', status = '', course_type = '', department_id = '' } = req.query;
   const { page, pageSize, offset } = getPagination(req.query, 10);
   const filters = ['1 = 1'];
   const params = [];
@@ -1823,6 +1885,11 @@ router.get('/sections', async (req, res) => {
     params.push(course_type);
   }
 
+  if (department_id) {
+    filters.push('courses.department_id = ?');
+    params.push(Number(department_id));
+  }
+
   const whereClause = filters.join(' AND ');
   const countRows = await query(
     `
@@ -1841,6 +1908,7 @@ router.get('/sections', async (req, res) => {
         courses.course_code,
         courses.course_name,
         courses.course_type,
+        departments.name AS department_name,
         users.full_name AS teacher_name,
         terms.name AS term_name,
         classrooms.building_name,
@@ -1849,6 +1917,7 @@ router.get('/sections', async (req, res) => {
         COUNT(CASE WHEN enrollments.status = '${ENROLLMENT_STATUS.SELECTED}' THEN 1 END) AS selected_count
       FROM course_sections
       INNER JOIN courses ON courses.id = course_sections.course_id
+      INNER JOIN departments ON departments.id = courses.department_id
       INNER JOIN teachers ON teachers.id = course_sections.teacher_id
       INNER JOIN users ON users.id = teachers.user_id
       INNER JOIN terms ON terms.id = course_sections.term_id
@@ -1866,12 +1935,13 @@ router.get('/sections', async (req, res) => {
   return res.render('pages/admin/sections', {
     pageTitle: '开课管理',
     sections,
+    departments,
     courses,
     teachers,
     terms,
     classrooms,
     timeSlots,
-    filters: { keyword, term_id, status, course_type },
+    filters: { keyword, term_id, status, course_type, department_id },
     returnTo: req.originalUrl,
     pagination: buildPagination(countRows[0]?.total || 0, page, pageSize)
   });
@@ -1880,7 +1950,7 @@ router.get('/sections/new', async (req, res) => {
   const [courses, teachers, terms, classrooms, timeSlots] = await Promise.all([
     getCourses(),
     getTeachers(),
-    getTerms(),
+    getSectionSelectableTerms(),
     getClassrooms(),
     getTimeSlots()
   ]);
@@ -1902,7 +1972,7 @@ router.get('/sections/:sectionId/edit', async (req, res) => {
   const [courses, teachers, terms, classrooms, timeSlots, section] = await Promise.all([
     getCourses(),
     getTeachers(),
-    getTerms(),
+    getSectionSelectableTerms(),
     getClassrooms(),
     getTimeSlots(),
     query(
@@ -1955,6 +2025,11 @@ router.post('/sections', async (req, res) => {
 
   if (Number(usual_weight) + Number(final_weight) !== 100) {
     req.flash('danger', '平时成绩占比与期末成绩占比之和必须为 100%。');
+    return res.redirect(redirectPath);
+  }
+
+  if (!(await isSectionSelectableTerm(term_id))) {
+    req.flash('danger', '开课学期仅允许选择当前学期或规划中的学期。');
     return res.redirect(redirectPath);
   }
 
@@ -2057,6 +2132,11 @@ router.put('/sections/:sectionId', async (req, res) => {
 
   if (Number(usual_weight) + Number(final_weight) !== 100) {
     req.flash('danger', '平时成绩占比与期末成绩占比之和必须为 100%。');
+    return res.redirect(redirectPath);
+  }
+
+  if (!(await isSectionSelectableTerm(term_id))) {
+    req.flash('danger', '开课学期仅允许选择当前学期或规划中的学期。');
     return res.redirect(redirectPath);
   }
 
@@ -2166,15 +2246,20 @@ router.delete('/sections/:sectionId', async (req, res) => {
     return res.redirect(redirectPath);
   }
 
-  try {
-    const cleanup = await deleteSectionManually(sectionId);
-    const details = [
-      '选课记录 ' + (cleanup.enrollmentCount || 0),
-      '成绩记录 ' + (cleanup.gradeCount || 0),
-      '教学评价 ' + (cleanup.evaluationCount || 0)
-    ].join(', ');
+  const dependencySummary = summarizeDependencies([
+    { label: '选课记录', total: section.enrollment_count },
+    { label: '成绩记录', total: section.grade_count },
+    { label: '教学评价', total: section.evaluation_count }
+  ]);
 
-    req.flash('success', '开课记录已删除，并已同步清理：' + details + '。');
+  if (dependencySummary) {
+    req.flash('danger', `开课记录仍有关联数据，暂时无法删除：${dependencySummary}。`);
+    return res.redirect(redirectPath);
+  }
+
+  try {
+    await query('DELETE FROM course_sections WHERE id = ?', [sectionId]);
+    req.flash('success', '开课记录已删除。');
   } catch (error) {
     req.flash('danger', '开课记录删除失败，请稍后重试。');
   }
@@ -2197,15 +2282,20 @@ router.delete('/sections/:sectionId/legacy-delete', async (req, res) => {
     return res.redirect(redirectPath);
   }
 
-  try {
-    const cleanup = await deleteSectionManually(sectionId);
-    const details = [
-      '选课记录 ' + (cleanup.enrollmentCount || 0),
-      '成绩记录 ' + (cleanup.gradeCount || 0),
-      '教学评价 ' + (cleanup.evaluationCount || 0)
-    ].join(', ');
+  const dependencySummary = summarizeDependencies([
+    { label: '选课记录', total: section.enrollment_count },
+    { label: '成绩记录', total: section.grade_count },
+    { label: '教学评价', total: section.evaluation_count }
+  ]);
 
-    req.flash('success', '开课记录已删除，并已同步清理：' + details + '。');
+  if (dependencySummary) {
+    req.flash('danger', `开课记录仍有关联数据，暂时无法删除：${dependencySummary}。`);
+    return res.redirect(redirectPath);
+  }
+
+  try {
+    await query('DELETE FROM course_sections WHERE id = ?', [sectionId]);
+    req.flash('success', '开课记录已删除。');
   } catch (error) {
     req.flash('danger', '开课记录删除失败，请稍后重试。');
   }
@@ -2986,6 +3076,20 @@ router.post('/foundations/classes', async (req, res) => {
   }
 
   try {
+    const { major, conflict } = await findDepartmentClassCodeConflict({
+      majorId,
+      gradeYear,
+      classCode
+    });
+
+    if (!major) {
+      throw new Error('major_not_found');
+    }
+
+    if (conflict) {
+      throw new Error('department_class_code_conflict');
+    }
+
     const className = await buildClassName({ majorId, gradeYear, classCode });
 
     if (!className) {
@@ -3004,8 +3108,10 @@ router.post('/foundations/classes', async (req, res) => {
   } catch (error) {
     if (error.message === 'major_not_found') {
       req.flash('danger', '所属专业不存在，请重新选择。');
+    } else if (error.message === 'department_class_code_conflict') {
+      req.flash('danger', '同学院同年级下班号已存在，请更换班号后重试。');
     } else if (error.code === 'ER_DUP_ENTRY') {
-      req.flash('danger', '班级名称或班级代码已存在，请检查后重试。');
+      req.flash('danger', '班级名称已存在，或同学院同年级下班号重复，请检查后重试。');
     } else {
       req.flash('danger', '班级创建失败，请稍后重试。');
     }
@@ -3243,38 +3349,36 @@ router.put('/program-plans/:planId', async (req, res) => {
 router.delete('/program-plans/:planId', async (req, res) => {
   const planId = Number(req.params.planId);
   const redirectPath = getSafeReturnPath(req.body.return_to, '/admin/program-plans');
+  const plan = await getTrainingPlanById(planId);
+
+  if (!plan) {
+    req.flash('danger', '培养方案不存在。');
+    return res.redirect(redirectPath);
+  }
+
+  const [moduleCount, mappingCount] = await Promise.all([
+    getCount('SELECT COUNT(*) AS total FROM training_plan_modules WHERE training_plan_id = ?', [planId]),
+    getCount('SELECT COUNT(*) AS total FROM training_plan_courses WHERE training_plan_id = ?', [planId])
+  ]);
+  const dependencySummary = summarizeDependencies([
+    { label: '方案模块', total: moduleCount },
+    { label: '课程映射', total: mappingCount }
+  ]);
+
+  if (dependencySummary) {
+    req.flash('danger', `培养方案仍有关联数据，暂时无法删除：${dependencySummary}。请先逐项清理后再删除。`);
+    return res.redirect(redirectPath);
+  }
 
   try {
     await withTransaction(async (connection) => {
-      const [planRows] = await connection.query(
-        `
-          SELECT id, major_id
-          FROM training_plans
-          WHERE id = ?
-          LIMIT 1
-        `,
-        [planId]
-      );
-
-      const plan = planRows[0];
-
-      if (!plan) {
-        throw new Error('plan_not_found');
-      }
-
-      await connection.execute('DELETE FROM training_plan_courses WHERE training_plan_id = ?', [planId]);
-      await connection.execute('DELETE FROM training_plan_modules WHERE training_plan_id = ?', [planId]);
       await connection.execute('DELETE FROM training_plans WHERE id = ?', [planId]);
       await syncStudentsCreditsRequiredByMajor(plan.major_id, connection);
     });
 
     req.flash('success', '培养方案已删除。');
   } catch (error) {
-    if (error.message === 'plan_not_found') {
-      req.flash('danger', '培养方案不存在。');
-    } else {
-      req.flash('danger', '培养方案删除失败，请稍后重试。');
-    }
+    req.flash('danger', '培养方案删除失败，请稍后重试。');
   }
 
   return res.redirect(303, redirectPath);
@@ -3920,9 +4024,19 @@ router.get('/evaluations', async (req, res) => {
 });
 
 router.delete('/announcements/:announcementId', async (req, res) => {
+  const announcementId = Number(req.params.announcementId);
   const redirectPath = getSafeReturnPath(req.body.return_to, '/admin/announcements');
+  const warningCount = await getCount('SELECT COUNT(*) AS total FROM academic_warnings WHERE announcement_id = ?', [
+    announcementId
+  ]);
+
+  if (warningCount > 0) {
+    req.flash('danger', `公告仍有关联数据，暂时无法删除：学业预警${warningCount}项。`);
+    return res.redirect(redirectPath);
+  }
+
   try {
-    const result = await query('DELETE FROM announcements WHERE id = ?', [Number(req.params.announcementId)]);
+    const result = await query('DELETE FROM announcements WHERE id = ?', [announcementId]);
 
     if (!result.affectedRows) {
       req.flash('danger', '公告不存在。');
