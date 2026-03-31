@@ -1,0 +1,65 @@
+<% const hasSideCard = typeof sideCard !== 'undefined' && sideCard; %>
+<section class="page-grid">
+  <div class="panel editor-shell">
+    <div class="editor-hero">
+      <div class="editor-hero-copy">
+        <% if (typeof eyebrow !== 'undefined' && eyebrow) { %>
+          <p class="editor-eyebrow"><%= eyebrow %></p>
+        <% } %>
+        <h3 class="section-title"><%= title %></h3>
+        <% if (typeof description !== 'undefined' && description) { %>
+          <p class="editor-description"><%= description %></p>
+        <% } %>
+      </div>
+      <div class="editor-hero-actions">
+        <a href="<%= backHref %>" class="ghost-button" data-restore-page-state>返回列表</a>
+      </div>
+    </div>
+
+    <div class="editor-grid <%= hasSideCard ? '' : 'is-single' %>">
+      <form action="<%= formAction %>" method="post" class="form-shell form-sheet" data-loading-form data-admin-modal-form>
+        <% if (method && method !== 'POST') { %>
+          <input type="hidden" name="_method" value="<%= method %>" />
+        <% } %>
+        <input type="hidden" name="return_to" value="<%= backHref %>" />
+
+        <%- include(formPartial, formData || {}) %>
+
+        <div class="form-actions">
+          <button
+            type="submit"
+            class="primary-button"
+            data-success-state="<%= typeof successState !== 'undefined' && successState ? successState : submitLabel %>"
+          >
+            <%= submitLabel %>
+          </button>
+          <a href="<%= backHref %>" class="ghost-button" data-restore-page-state>取消</a>
+        </div>
+      </form>
+
+      <% if (hasSideCard) { %>
+        <aside class="editor-sidecard">
+          <% if (sideCard.label) { %>
+            <span class="status-pill is-neutral"><%= sideCard.label %></span>
+          <% } %>
+          <% if (sideCard.value) { %>
+            <strong class="editor-sidecard-title"><%= sideCard.value %></strong>
+          <% } %>
+          <% if (sideCard.description) { %>
+            <p class="muted-copy"><%= sideCard.description %></p>
+          <% } %>
+          <% if (Array.isArray(sideCard.items) && sideCard.items.length) { %>
+            <div class="editor-side-list">
+              <% sideCard.items.forEach(function(item) { %>
+                <div class="editor-side-item">
+                  <span class="field-label"><%= item.label %></span>
+                  <strong><%= item.value %></strong>
+                </div>
+              <% }) %>
+            </div>
+          <% } %>
+        </aside>
+      <% } %>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,3 @@
+CREATE DATABASE IF NOT EXISTS teaching_management
+  DEFAULT CHARACTER SET utf8mb4
+  DEFAULT COLLATE utf8mb4_unicode_ci;

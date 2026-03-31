@@ -1,0 +1,14 @@
+<% if (flash && Object.keys(flash).length) { %>
+  <div class="flash-stack">
+    <% Object.keys(flash).forEach(function(type) { %>
+      <% flash[type].forEach(function(message) { %>
+        <div class="flash-toast flash-<%= type %>">
+          <div class="flash-icon">
+            <iconify-icon icon="<%= type === 'success' ? 'solar:check-circle-linear' : type === 'danger' ? 'solar:danger-linear' : 'solar:info-circle-linear' %>"></iconify-icon>
+          </div>
+          <p><%= message %></p>
+        </div>
+      <% }) %>
+    <% }) %>
+  </div>
+<% } %>

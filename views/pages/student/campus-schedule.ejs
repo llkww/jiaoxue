@@ -1,0 +1,94 @@
+<% const currentListUrl = buildQuery() ? `/student/campus-schedule?${buildQuery()}` : '/student/campus-schedule'; %>
+<section class="page-grid">
+  <div class="panel workspace-panel">
+    <div class="section-head">
+      <div>
+        <h3 class="section-title">全校课表查询</h3>
+      </div>
+      <div class="section-actions">
+        <a href="/student/schedule" class="ghost-button">返回我的课表</a>
+      </div>
+    </div>
+
+    <form class="filter-shell mb-4" method="get">
+      <input class="form-control" name="keyword" placeholder="搜索课程名、课程号、教师或开课编号" value="<%= filters.keyword %>" />
+
+      <select class="form-select" name="weekday">
+        <option value="">全部星期</option>
+        <option value="1" <%= filters.weekday === '1' ? 'selected' : '' %>>周一</option>
+        <option value="2" <%= filters.weekday === '2' ? 'selected' : '' %>>周二</option>
+        <option value="3" <%= filters.weekday === '3' ? 'selected' : '' %>>周三</option>
+        <option value="4" <%= filters.weekday === '4' ? 'selected' : '' %>>周四</option>
+        <option value="5" <%= filters.weekday === '5' ? 'selected' : '' %>>周五</option>
+        <option value="6" <%= filters.weekday === '6' ? 'selected' : '' %>>周六</option>
+        <option value="7" <%= filters.weekday === '7' ? 'selected' : '' %>>周日</option>
+      </select>
+
+      <select class="form-select" name="major_id">
+        <option value="">全部专业</option>
+        <% majors.forEach(function(item) { %>
+          <option value="<%= item.id %>" <%= String(filters.major_id) === String(item.id) ? 'selected' : '' %>>
+            <%= item.major_code %> · <%= item.name %>
+          </option>
+        <% }) %>
+      </select>
+
+      <select class="form-select" name="course_type">
+        <option value="">全部课程性质</option>
+        <option value="必修" <%= filters.course_type === '必修' ? 'selected' : '' %>>必修</option>
+        <option value="选修" <%= filters.course_type === '选修' ? 'selected' : '' %>>选修</option>
+      </select>
+
+      <button class="primary-button" type="submit">筛选课表</button>
+    </form>
+
+    <% if (campusSections.length) { %>
+      <div class="table-scroll table-scroll-module">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>课程名</th>
+              <th>课程号</th>
+              <th>开课编号</th>
+              <th>所属专业</th>
+              <th>课程性质</th>
+              <th>学分</th>
+              <th>考核方式</th>
+              <th>任课教师</th>
+              <th>上课时间</th>
+              <th>上课周次</th>
+              <th>教室</th>
+              <th>容量</th>
+              <th>查看详情</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% campusSections.forEach(function(item) { %>
+              <tr>
+                <td><strong><%= item.course_name %></strong></td>
+                <td><%= item.course_code %></td>
+                <td><%= item.section_code %></td>
+                <td><%= item.major_name %></td>
+                <td><span class="status-pill <%= badgeClass(item.course_type) %>"><%= item.course_type %></span></td>
+                <td><%= formatScore(item.credits) %></td>
+                <td><%= item.assessment_method %></td>
+                <td><%= item.teacher_name %></td>
+                <td><%= item.label %></td>
+                <td><%= item.weeks_text || '--' %></td>
+                <td><%= item.building_name %> <%= item.room_number %></td>
+                <td><%= item.selected_count %> / <%= item.capacity %></td>
+                <td><a href="/student/campus-schedule/<%= item.id %>?back=<%= encodeURIComponent(currentListUrl) %>" class="ghost-button">查看详情</a></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="mt-4">
+        <%- include('../../partials/pagination', { pagination: pagination }) %>
+      </div>
+    <% } else { %>
+      <%- include('../../partials/empty-state', { title: '暂无匹配开课信息', icon: 'solar:calendar-search-linear' }) %>
+    <% } %>
+  </div>
+</section>

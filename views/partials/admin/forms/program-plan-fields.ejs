@@ -1,0 +1,21 @@
+<% const item = plan || {}; %>
+<div class="row g-3 w-100">
+  <div class="col-md-6">
+    <label class="field-label">所属专业</label>
+    <select class="form-select" name="major_id" required>
+      <% majors.forEach(function(major) { %>
+        <option value="<%= major.id %>" <%= String(item.major_id || '') === String(major.id) ? 'selected' : '' %>>
+          <%= major.department_no %>-<%= major.major_code %> · <%= major.name %>
+        </option>
+      <% }) %>
+    </select>
+  </div>
+  <div class="col-md-6">
+    <label class="field-label">方案名称</label>
+    <input class="form-control" name="plan_name" value="<%= item.plan_name || '' %>" required />
+  </div>
+  <div class="col-md-6">
+    <label class="field-label">总学分要求</label>
+    <input class="form-control" type="text" value="<%= item.id ? `${formatScore(item.total_credits || 0)} 学分（系统自动汇总）` : '保存后由课程自动汇总' %>" readonly />
+  </div>
+</div>

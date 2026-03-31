@@ -1,0 +1,205 @@
+<section class="page-grid">
+  <div class="panel workspace-panel">
+    <div class="section-head">
+      <div>
+        <h3 class="section-title">目录维护</h3>
+      </div>
+      <div class="section-actions">
+        <% if (tab === 'departments') { %>
+          <a
+            href="/admin/foundations/departments/new?return_to=<%= encodeURIComponent(returnTo) %>"
+            class="primary-button"
+            data-admin-modal
+          >
+            新增院系
+          </a>
+        <% } %>
+        <% if (tab === 'majors') { %>
+          <a
+            href="/admin/foundations/majors/new?return_to=<%= encodeURIComponent(returnTo) %>"
+            class="primary-button"
+            data-admin-modal
+          >
+            新增专业
+          </a>
+        <% } %>
+        <% if (tab === 'classes') { %>
+          <a
+            href="/admin/foundations/classes/new?return_to=<%= encodeURIComponent(returnTo) %>"
+            class="primary-button"
+            data-admin-modal
+          >
+            新增班级
+          </a>
+        <% } %>
+      </div>
+    </div>
+
+    <div class="workspace-tabs mb-4">
+      <a href="/admin/foundations?tab=departments" class="workspace-tab <%= tab === 'departments' ? 'is-active' : '' %>">
+        <span>院系</span>
+        <strong><%= summary.departments %></strong>
+      </a>
+      <a href="/admin/foundations?tab=majors" class="workspace-tab <%= tab === 'majors' ? 'is-active' : '' %>">
+        <span>专业</span>
+        <strong><%= summary.majors %></strong>
+      </a>
+      <a href="/admin/foundations?tab=classes" class="workspace-tab <%= tab === 'classes' ? 'is-active' : '' %>">
+        <span>班级</span>
+        <strong><%= summary.classes %></strong>
+      </a>
+    </div>
+
+    <form class="filter-shell mb-4" method="get">
+      <input type="hidden" name="tab" value="<%= tab %>" />
+      <input
+        class="form-control"
+        name="keyword"
+        placeholder="<%= tab === 'departments' ? '搜索院系代码、名称或说明' : tab === 'majors' ? '搜索专业代码、名称或说明' : '搜索班级名称、辅导员或专业' %>"
+        value="<%= filters.keyword %>"
+      />
+
+      <% if (tab === 'majors') { %>
+        <select class="form-select" name="department_id">
+          <option value="">全部院系</option>
+          <% departments.forEach(function(item) { %>
+            <option value="<%= item.id %>" <%= String(filters.department_id) === String(item.id) ? 'selected' : '' %>><%= item.name %></option>
+          <% }) %>
+        </select>
+      <% } %>
+
+      <% if (tab === 'classes') { %>
+        <select class="form-select" name="major_id">
+          <option value="">全部专业</option>
+          <% majors.forEach(function(item) { %>
+            <option value="<%= item.id %>" <%= String(filters.major_id) === String(item.id) ? 'selected' : '' %>><%= item.name %></option>
+          <% }) %>
+        </select>
+        <select class="form-select" name="grade_year">
+          <option value="">全部年级</option>
+          <% yearOptions.forEach(function(item) { %>
+            <option value="<%= item.grade_year %>" <%= String(filters.grade_year) === String(item.grade_year) ? 'selected' : '' %>><%= item.grade_year %></option>
+          <% }) %>
+        </select>
+      <% } %>
+
+      <button class="primary-button" type="submit">筛选目录</button>
+    </form>
+
+    <% if (items.length) { %>
+      <div class="table-scroll table-scroll-module">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <% if (tab === 'departments') { %>
+                <th>院系</th>
+                <th>学院号</th>
+                <th>代码</th>
+                <th>说明</th>
+                <th>操作</th>
+              <% } %>
+              <% if (tab === 'majors') { %>
+                <th>专业</th>
+                <th>所属院系</th>
+                <th>专业号</th>
+                <th>代码</th>
+                <th>操作</th>
+              <% } %>
+              <% if (tab === 'classes') { %>
+                <th>班级</th>
+                <th>专业</th>
+                <th>班号</th>
+                <th>年级</th>
+                <th>辅导员</th>
+                <th>操作</th>
+              <% } %>
+            </tr>
+          </thead>
+          <tbody>
+            <% items.forEach(function(item) { %>
+              <tr>
+                <% if (tab === 'departments') { %>
+                  <td><strong><%= item.name %></strong></td>
+                  <td><%= item.department_no %></td>
+                  <td><%= item.code %></td>
+                  <td><%= item.description || '--' %></td>
+                  <td class="table-actions">
+                    <a
+                      href="/admin/foundations/departments/<%= item.id %>/edit?return_to=<%= encodeURIComponent(returnTo) %>"
+                      class="ghost-button"
+                      data-admin-modal
+                    >
+                      编辑
+                    </a>
+                    <form action="/admin/foundations/departments/<%= item.id %>" method="post" data-confirm="确认删除该院系？">
+                      <input type="hidden" name="_method" value="DELETE" />
+                      <input type="hidden" name="return_to" value="<%= returnTo %>" />
+                      <button type="submit" class="ghost-button">删除</button>
+                    </form>
+                  </td>
+                <% } %>
+
+                <% if (tab === 'majors') { %>
+                  <td><strong><%= item.name %></strong></td>
+                  <td><%= item.department_no %> · <%= item.department_name %></td>
+                  <td><%= item.major_code || '--' %></td>
+                  <td><%= item.code %></td>
+                  <td class="table-actions">
+                    <a
+                      href="/admin/foundations/majors/<%= item.id %>/edit?return_to=<%= encodeURIComponent(returnTo) %>"
+                      class="ghost-button"
+                      data-admin-modal
+                    >
+                      编辑
+                    </a>
+                    <form action="/admin/foundations/majors/<%= item.id %>" method="post" data-confirm="确认删除该专业？">
+                      <input type="hidden" name="_method" value="DELETE" />
+                      <input type="hidden" name="return_to" value="<%= returnTo %>" />
+                      <button type="submit" class="ghost-button">删除</button>
+                    </form>
+                  </td>
+                <% } %>
+
+                <% if (tab === 'classes') { %>
+                  <td>
+                    <strong><%= item.class_name %></strong>
+                    <div class="muted-copy"><%= item.class_code %></div>
+                  </td>
+                  <td>
+                    <div><%= item.major_name %></div>
+                    <div class="muted-copy"><%= item.department_no %> · <%= item.department_name %></div>
+                  </td>
+                  <td><%= item.class_code %></td>
+                  <td><%= item.grade_year %></td>
+                  <td><%= item.counselor_name || '--' %></td>
+                  <td class="table-actions">
+                    <a
+                      href="/admin/foundations/classes/<%= item.id %>/edit?return_to=<%= encodeURIComponent(returnTo) %>"
+                      class="ghost-button"
+                      data-admin-modal
+                    >
+                      编辑
+                    </a>
+                    <form action="/admin/foundations/classes/<%= item.id %>" method="post" data-confirm="确认删除该班级？">
+                      <input type="hidden" name="_method" value="DELETE" />
+                      <input type="hidden" name="return_to" value="<%= returnTo %>" />
+                      <button type="submit" class="ghost-button">删除</button>
+                    </form>
+                  </td>
+                <% } %>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+      <div class="mt-4">
+        <%- include('../../partials/pagination', { pagination: pagination }) %>
+      </div>
+    <% } else { %>
+      <%- include('../../partials/empty-state', {
+        title: tab === 'departments' ? '没有找到符合条件的院系' : tab === 'majors' ? '没有找到符合条件的专业' : '没有找到符合条件的班级',
+        icon: 'solar:settings-linear'
+      }) %>
+    <% } %>
+  </div>
+</section>

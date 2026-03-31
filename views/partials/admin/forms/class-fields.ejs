@@ -1,0 +1,59 @@
+<% const item = classItem || {}; %>
+<% const isEdit = mode === 'edit'; %>
+<% const selectedMajor = majors.find((major) => String(major.id) === String(item.major_id || '')) || null; %>
+
+<div class="row g-3 w-100">
+  <% if (isEdit) { %>
+    <div class="col-md-6">
+      <label class="field-label">所属专业</label>
+      <input
+        class="form-control"
+        value="<%= selectedMajor ? `${selectedMajor.department_name} / ${selectedMajor.name}` : '' %>"
+        readonly
+      />
+    </div>
+    <div class="col-md-6">
+      <label class="field-label">班级名称</label>
+      <input class="form-control" value="<%= item.class_name || '' %>" readonly />
+    </div>
+    <div class="col-md-4">
+      <label class="field-label">班号</label>
+      <input class="form-control" value="<%= item.class_code || '' %>" readonly />
+    </div>
+    <div class="col-md-4">
+      <label class="field-label">年级</label>
+      <input class="form-control" value="<%= item.grade_year || '' %>" readonly />
+    </div>
+    <div class="col-md-4">
+      <label class="field-label">辅导员</label>
+      <input class="form-control" name="counselor_name" value="<%= item.counselor_name || '' %>" />
+    </div>
+  <% } else { %>
+    <div class="col-md-6">
+      <label class="field-label">所属专业</label>
+      <select class="form-select" name="major_id" data-search-placeholder="搜索专业" required>
+        <option value="">请选择专业</option>
+        <% majors.forEach(function(major) { %>
+          <option value="<%= major.id %>" <%= String(item.major_id || '') === String(major.id) ? 'selected' : '' %>>
+            <%= major.department_name %> / <%= major.name %>
+          </option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label class="field-label">班号</label>
+      <input class="form-control" name="class_code" value="<%= item.class_code || '' %>" maxlength="2" required />
+    </div>
+    <div class="col-md-3">
+      <label class="field-label">年级</label>
+      <input class="form-control" type="number" name="grade_year" value="<%= item.grade_year || 2023 %>" required />
+    </div>
+    <div class="col-12">
+      <label class="field-label">辅导员</label>
+      <input class="form-control" name="counselor_name" value="<%= item.counselor_name || '' %>" />
+    </div>
+    <div class="col-12">
+      <div class="muted-copy">班级名称将根据所属专业、年级和班号自动生成。</div>
+    </div>
+  <% } %>
+</div>

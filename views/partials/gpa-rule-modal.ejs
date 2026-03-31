@@ -1,0 +1,19 @@
+<div class="modal fade tm-modal" id="<%= modalId %>" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content tm-modal-card">
+      <div class="modal-header tm-modal-header">
+        <h5 class="modal-title"><%= gpaRule.title %></h5>
+        <button type="button" class="btn-close tm-modal-close-icon" data-bs-dismiss="modal" aria-label="关闭"></button>
+      </div>
+      <div class="modal-body">
+        <div class="quick-card-list">
+          <% gpaRule.lines.forEach(function(line) { %>
+            <article class="quick-card quick-card-compact">
+              <strong><%= line %></strong>
+            </article>
+          <% }) %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

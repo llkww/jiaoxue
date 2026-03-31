@@ -1,0 +1,20 @@
+<%- include('../../partials/admin/editor-shell', {
+  eyebrow: mode === 'edit' ? '班级信息' : '新增班级',
+  title: mode === 'edit' ? `编辑 ${classItem?.class_name || ''}` : '新增班级',
+  description: mode === 'edit' ? '班级编辑只允许调整辅导员，避免与学生档案冲突。' : '班级名称将按专业、年级与班号自动生成。',
+  formAction: mode === 'edit' ? `/admin/foundations/classes/${classItem?.id}` : '/admin/foundations/classes',
+  method: mode === 'edit' ? 'PUT' : 'POST',
+  submitLabel: mode === 'edit' ? '保存更新' : '创建班级',
+  backHref,
+  formPartial: 'forms/class-fields',
+  formData: { classItem: classItem || {}, majors, mode },
+  sideCard: {
+    label: '基础目录',
+    value: mode === 'edit' ? '仅维护辅导员' : '自动生成班级名称',
+    description: mode === 'edit' ? '班级的专业、班号、年级保持稳定。' : '保存后即可在学生管理中直接引用该班级。',
+    items: [
+      { label: '引用模块', value: '学生档案' },
+      { label: '维护位置', value: '基础信息' }
+    ]
+  }
+}) %>

@@ -1,0 +1,20 @@
+<%- include('../../partials/admin/editor-shell', {
+  eyebrow: mode === 'edit' ? '专业信息' : '新增专业',
+  title: mode === 'edit' ? `编辑 ${major?.name || ''}` : '新增专业',
+  description: mode === 'edit' ? '完善专业信息。' : '新建专业信息。',
+  formAction: mode === 'edit' ? `/admin/foundations/majors/${major?.id}` : '/admin/foundations/majors',
+  method: mode === 'edit' ? 'PUT' : 'POST',
+  submitLabel: mode === 'edit' ? '保存更新' : '创建专业',
+  backHref,
+  formPartial: 'forms/major-fields',
+  formData: { major: major || {}, departments, mode },
+  sideCard: {
+    label: '基础目录',
+    value: '专业层级',
+    description: '专业建立后，可继续创建对应班级。',
+    items: [
+      { label: '引用模块', value: '班级、学生' },
+      { label: '维护位置', value: '基础信息' }
+    ]
+  }
+}) %>

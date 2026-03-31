@@ -1,0 +1,40 @@
+<% if (pagination && pagination.totalPages > 1) { %>
+  <nav class="pager">
+    <a
+      class="pager-link <%= pagination.showFirst ? '' : 'is-disabled' %>"
+      href="<%= pagination.showFirst ? `?${buildQuery({ page: 1 })}` : '#' %>"
+    >
+      首页
+    </a>
+
+    <a
+      class="pager-link <%= pagination.hasPrev ? '' : 'is-disabled' %>"
+      href="<%= pagination.hasPrev ? `?${buildQuery({ page: pagination.page - 1 })}` : '#' %>"
+    >
+      上一页
+    </a>
+
+    <% pagination.pages.forEach(function(item) { %>
+      <a
+        class="pager-link <%= item === pagination.page ? 'is-current' : '' %>"
+        href="?<%= buildQuery({ page: item }) %>"
+      >
+        <%= item %>
+      </a>
+    <% }) %>
+
+    <a
+      class="pager-link <%= pagination.hasNext ? '' : 'is-disabled' %>"
+      href="<%= pagination.hasNext ? `?${buildQuery({ page: pagination.page + 1 })}` : '#' %>"
+    >
+      下一页
+    </a>
+
+    <a
+      class="pager-link <%= pagination.showLast ? '' : 'is-disabled' %>"
+      href="<%= pagination.showLast ? `?${buildQuery({ page: pagination.totalPages })}` : '#' %>"
+    >
+      末页
+    </a>
+  </nav>
+<% } %>

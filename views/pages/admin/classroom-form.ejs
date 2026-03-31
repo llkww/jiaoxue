@@ -1,0 +1,20 @@
+<%- include('../../partials/admin/editor-shell', {
+  eyebrow: mode === 'edit' ? '教室档案' : '新增教室',
+  title: mode === 'edit' ? `编辑 ${classroom?.building_name || ''} ${classroom?.room_number || ''}` : '新增教室',
+  description: mode === 'edit' ? '完善教室信息。' : '新建教室信息。',
+  formAction: mode === 'edit' ? `/admin/classrooms/${classroom?.id}` : '/admin/classrooms',
+  method: mode === 'edit' ? 'PUT' : 'POST',
+  submitLabel: mode === 'edit' ? '保存更新' : '创建教室',
+  backHref,
+  formPartial: 'forms/classroom-fields',
+  formData: { classroom: classroom || {}, mode },
+  sideCard: {
+    label: '排课提示',
+    value: mode === 'edit' ? '教室档案' : '教室资源',
+    description: '保存后可在开课安排中直接选择该教室。',
+    items: [
+      { label: '默认类型', value: classroom?.room_type || '标准教室' },
+      { label: '容量单位', value: '人数' }
+    ]
+  }
+}) %>

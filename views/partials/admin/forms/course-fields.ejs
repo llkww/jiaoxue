@@ -1,0 +1,70 @@
+<% const item = course || {}; %>
+<% const isEdit = mode === 'edit'; %>
+
+<div class="row g-3 w-100">
+  <% if (isEdit) { %>
+    <div class="col-md-6">
+      <label class="field-label">课程号</label>
+      <input class="form-control" value="<%= item.course_code || '' %>" readonly />
+    </div>
+  <% } else { %>
+    <div class="col-12">
+      <div class="muted-copy">课程号将在保存后根据所属专业和课程性质自动生成且自动去重。</div>
+    </div>
+  <% } %>
+
+  <div class="col-md-6">
+    <label class="field-label">课程名称</label>
+    <input class="form-control" name="course_name" value="<%= item.course_name || '' %>" required />
+  </div>
+  <div class="col-md-6">
+    <label class="field-label">所属院系</label>
+    <select class="form-select" name="department_id" data-department-select data-major-target="course-major-select" required>
+      <option value="">请选择院系</option>
+      <% departments.forEach(function(department) { %>
+        <option value="<%= department.id %>" <%= String(item.department_id || '') === String(department.id) ? 'selected' : '' %>>
+          <%= department.name %>
+        </option>
+      <% }) %>
+    </select>
+  </div>
+  <div class="col-md-6">
+    <label class="field-label">所属专业</label>
+    <select class="form-select" id="course-major-select" name="major_id" data-search-placeholder="搜索专业" required>
+      <option value="">请选择专业</option>
+      <% majors.forEach(function(major) { %>
+        <option
+          value="<%= major.id %>"
+          data-department-id="<%= major.department_id %>"
+          <%= String(item.major_id || '') === String(major.id) ? 'selected' : '' %>
+        >
+          <%= major.major_code %> / <%= major.name %>
+        </option>
+      <% }) %>
+    </select>
+  </div>
+  <div class="col-md-6">
+    <label class="field-label">课程性质</label>
+    <select class="form-select" name="course_type" required>
+      <% ['必修', '选修'].forEach(function(type) { %>
+        <option value="<%= type %>" <%= (item.course_type || '必修') === type ? 'selected' : '' %>><%= type %></option>
+      <% }) %>
+    </select>
+  </div>
+  <div class="col-md-4">
+    <label class="field-label">学分</label>
+    <input class="form-control" type="number" step="0.5" min="0.5" name="credits" value="<%= item.credits || 3 %>" required />
+  </div>
+  <div class="col-md-4">
+    <label class="field-label">学时</label>
+    <input class="form-control" type="number" min="1" name="total_hours" value="<%= item.total_hours || 48 %>" required />
+  </div>
+  <div class="col-md-4">
+    <label class="field-label">考核方式</label>
+    <input class="form-control" name="assessment_method" value="<%= item.assessment_method || '考试' %>" required />
+  </div>
+  <div class="col-12">
+    <label class="field-label">课程说明</label>
+    <textarea class="form-control" rows="4" name="description"><%= item.description || '' %></textarea>
+  </div>
+</div>

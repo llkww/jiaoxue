@@ -1,0 +1,20 @@
+<%- include('../../partials/admin/editor-shell', {
+  eyebrow: mode === 'edit' ? '学生档案' : '学生建档',
+  title: mode === 'edit' ? `编辑 ${student?.full_name || ''}` : '新增学生',
+  description: mode === 'edit' ? '管理员仅允许调整所属班级，学号和班内序号保持不变。' : '学号、班内序号和入学年份会根据班级自动生成。',
+  formAction: mode === 'edit' ? `/admin/students/${student?.id}` : '/admin/students',
+  method: mode === 'edit' ? 'PUT' : 'POST',
+  submitLabel: mode === 'edit' ? '保存更新' : '创建学生',
+  backHref,
+  formPartial: 'forms/student-fields',
+  formData: { student: student || {}, classes, mode },
+  sideCard: {
+    label: '建档提示',
+    value: mode === 'edit' ? '仅调整班级' : '默认密码 student123',
+    description: mode === 'edit' ? '学生私有信息以学生端最新维护结果为准。' : '账号创建后状态默认启用。',
+    items: [
+      { label: '账号状态', value: '启用' },
+      { label: '角色类型', value: '学生' }
+    ]
+  }
+}) %>

@@ -1,0 +1,149 @@
+<section class="split-grid">
+  <div class="panel">
+    <div class="section-head">
+      <div>
+        <h3 class="section-title">个人资料</h3>
+      </div>
+    </div>
+
+    <form action="/profile" method="post" class="form-shell" data-loading-form>
+      <div class="row g-3 w-100">
+        <div class="col-md-6">
+          <label class="field-label">账号</label>
+          <input class="form-control" value="<%= profile.username %>" disabled />
+        </div>
+        <div class="col-md-6">
+          <label class="field-label">身份</label>
+          <input class="form-control" value="<%= roleLabel(currentUser.role) %>" disabled />
+        </div>
+        <div class="col-md-6">
+          <label class="field-label">姓名</label>
+          <input class="form-control" name="full_name" value="<%= profile.full_name %>" required />
+        </div>
+        <div class="col-md-6">
+          <label class="field-label">邮箱</label>
+          <input class="form-control" type="email" name="email" value="<%= profile.email || '' %>" />
+        </div>
+        <div class="col-md-6">
+          <label class="field-label">手机号</label>
+          <input class="form-control" name="phone" value="<%= profile.phone || '' %>" />
+        </div>
+
+        <% if (currentUser.role === 'student') { %>
+          <div class="col-md-6">
+            <label class="field-label">学号</label>
+            <input class="form-control" value="<%= profile.student_no %>" disabled />
+          </div>
+          <div class="col-md-6">
+            <label class="field-label">班级</label>
+            <input class="form-control" value="<%= profile.class_name %>" disabled />
+          </div>
+          <div class="col-md-6">
+            <label class="field-label">专业 / 学院</label>
+            <input class="form-control" value="<%= profile.major_name %> / <%= profile.student_department_name %>" disabled />
+          </div>
+          <div class="col-md-6">
+            <label class="field-label">性别</label>
+            <select class="form-select" name="gender">
+              <option value="" <%= !profile.gender ? 'selected' : '' %>>未设置</option>
+              <% ['男', '女', '其他'].forEach(function(genderOption) { %>
+                <option value="<%= genderOption %>" <%= profile.gender === genderOption ? 'selected' : '' %>><%= genderOption %></option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="field-label">出生日期</label>
+            <input class="form-control" type="date" name="birth_date" value="<%= profile.birth_date || '' %>" />
+          </div>
+          <div class="col-12">
+            <label class="field-label">联系地址</label>
+            <textarea class="form-control" rows="3" name="address"><%= profile.address || '' %></textarea>
+          </div>
+        <% } %>
+
+        <% if (currentUser.role === 'teacher') { %>
+          <div class="col-md-6">
+            <label class="field-label">工号</label>
+            <input class="form-control" value="<%= profile.teacher_no %>" disabled />
+          </div>
+          <div class="col-md-6">
+            <label class="field-label">所属院系</label>
+            <input class="form-control" value="<%= profile.teacher_department_name %>" disabled />
+          </div>
+          <div class="col-md-6">
+            <label class="field-label">职称</label>
+            <input class="form-control" value="<%= profile.title || '' %>" disabled />
+          </div>
+          <div class="col-md-6">
+            <label class="field-label">性别</label>
+            <select class="form-select" name="gender">
+              <option value="" <%= !profile.teacher_gender ? 'selected' : '' %>>未设置</option>
+              <% ['男', '女', '其他'].forEach(function(genderOption) { %>
+                <option value="<%= genderOption %>" <%= profile.teacher_gender === genderOption ? 'selected' : '' %>><%= genderOption %></option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="field-label">出生日期</label>
+            <input class="form-control" type="date" name="birth_date" value="<%= profile.teacher_birth_date || '' %>" />
+          </div>
+          <div class="col-md-6">
+            <label class="field-label">办公地点</label>
+            <input class="form-control" name="office_location" value="<%= profile.office_location || '' %>" />
+          </div>
+          <div class="col-12">
+            <label class="field-label">联系地址</label>
+            <textarea class="form-control" rows="3" name="address"><%= profile.teacher_address || '' %></textarea>
+          </div>
+          <div class="col-12">
+            <label class="field-label">研究方向</label>
+            <textarea class="form-control" rows="3" name="specialty_text"><%= profile.specialty_text || '' %></textarea>
+          </div>
+        <% } %>
+
+        <% if (currentUser.role === 'admin') { %>
+          <div class="col-md-6">
+            <label class="field-label">管理员编号</label>
+            <input class="form-control" value="<%= profile.admin_no %>" disabled />
+          </div>
+          <div class="col-md-6">
+            <label class="field-label">岗位</label>
+            <input class="form-control" name="position" value="<%= profile.position || '' %>" />
+          </div>
+        <% } %>
+
+        <div class="col-12">
+          <button type="submit" class="primary-button">保存资料</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div class="panel">
+    <div class="section-head">
+      <div>
+        <h3 class="section-title">修改密码</h3>
+      </div>
+    </div>
+
+    <form action="/profile/password" method="post" class="form-shell" data-loading-form>
+      <div class="row g-3 w-100">
+        <div class="col-12">
+          <label class="field-label">当前密码</label>
+          <input class="form-control" type="password" name="current_password" required />
+        </div>
+        <div class="col-12">
+          <label class="field-label">新密码</label>
+          <input class="form-control" type="password" name="new_password" required minlength="6" />
+        </div>
+        <div class="col-12">
+          <label class="field-label">确认新密码</label>
+          <input class="form-control" type="password" name="confirm_password" required minlength="6" />
+        </div>
+        <div class="col-12">
+          <button type="submit" class="primary-button">更新密码</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</section>

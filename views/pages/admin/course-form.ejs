@@ -1,0 +1,20 @@
+<%- include('../../partials/admin/editor-shell', {
+  eyebrow: mode === 'edit' ? '课程目录' : '课程建档',
+  title: mode === 'edit' ? `编辑 ${course?.course_name || ''}` : '新增课程',
+  description: mode === 'edit' ? '课程学分、学时等变更会同步到培养方案与各端显示。' : '课程号保存后自动生成。',
+  formAction: mode === 'edit' ? `/admin/courses/${course?.id}` : '/admin/courses',
+  method: mode === 'edit' ? 'PUT' : 'POST',
+  submitLabel: mode === 'edit' ? '保存更新' : '创建课程',
+  backHref,
+  formPartial: 'forms/course-fields',
+  formData: { course: course || {}, departments, majors, mode },
+  sideCard: {
+    label: '课程设置',
+    value: mode === 'edit' ? '同步培养方案学分' : '自动生成课程号',
+    description: '课程删除前会检查开课记录和培养方案映射，避免删除异常。',
+    items: [
+      { label: '课程性质', value: course?.course_type || '必修' },
+      { label: '维护位置', value: '课程管理' }
+    ]
+  }
+}) %>

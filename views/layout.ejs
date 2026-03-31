@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= pageTitle %> · 教学管理系统</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+      crossorigin="anonymous"
+    />
+    <link rel="stylesheet" href="/css/app.css" />
+    <script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
+  </head>
+  <body class="app-body">
+    <% const identityLabel = currentUser?.role === 'student' ? '学号' : currentUser?.role === 'teacher' ? '工号' : '管理员编号'; %>
+    <div class="app-noise"></div>
+    <div class="app-shell" id="app-shell">
+      <aside class="app-sidebar" id="app-sidebar">
+        <div class="sidebar-head">
+          <div class="brand-block">
+            <div class="brand-mark">TM</div>
+            <div class="brand-copy">
+              <h1 class="brand-title">教学管理系统</h1>
+            </div>
+          </div>
+        </div>
+
+        <section class="sidebar-panel">
+          <div class="sidebar-meta">
+            <span>当前学期</span>
+            <strong><%= currentTerm ? currentTerm.name : '尚未设置' %></strong>
+          </div>
+          <div class="sidebar-meta">
+            <span>当前身份</span>
+            <strong><%= currentUser ? currentUser.fullName : '未登录' %></strong>
+          </div>
+          <% if (currentUser) { %>
+            <div class="sidebar-meta">
+              <span><%= identityLabel %></span>
+              <strong><%= currentUser.identityCode || currentUser.username %></strong>
+            </div>
+          <% } %>
+        </section>
+
+        <nav class="sidebar-nav">
+          <% navItems.forEach(function(item) { %>
+            <a
+              href="<%= item.path %>"
+              class="nav-item <%= currentPath.startsWith(item.match) ? 'is-active' : '' %>"
+              title="<%= item.label %>"
+            >
+              <iconify-icon icon="<%= item.icon %>"></iconify-icon>
+              <span><%= item.label %></span>
+            </a>
+          <% }) %>
+        </nav>
+
+      </aside>
+
+      <div class="app-frame">
+        <header class="app-topbar">
+          <div class="topbar-leading">
+            <div>
+              <h2 class="page-title"><%= pageTitle %></h2>
+            </div>
+          </div>
+
+          <div class="topbar-actions">
+            <div class="topbar-user">
+              <div class="avatar-chip" style="background:<%= currentUser?.avatarColor || '#146356' %>">
+                <%= (currentUser?.fullName || '教').slice(0, 1) %>
+              </div>
+              <div>
+                <strong><%= currentUser?.fullName %></strong>
+                <span><%= currentUser?.meta || roleLabel(currentUser?.role) %></span>
+              </div>
+            </div>
+            <form action="/auth/logout" method="post">
+              <button type="submit" class="ghost-button">退出登录</button>
+            </form>
+          </div>
+        </header>
+
+        <main class="app-main">
+          <%- include('partials/flash') %>
+          <%- body %>
+        </main>
+      </div>
+    </div>
+
+    <div class="modal fade tm-modal" id="admin-editor-modal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content tm-modal-card">
+          <div class="modal-header tm-modal-header">
+            <h3 class="section-title mb-0" id="admin-editor-modal-title">加载中</h3>
+            <button type="button" class="btn-close tm-modal-close-icon" data-bs-dismiss="modal" aria-label="关闭"></button>
+          </div>
+          <div class="modal-body tm-modal-body">
+            <div class="tm-modal-loading">
+              <span class="status-pill is-neutral">正在载入表单</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="confirm-layer" id="confirm-layer" hidden>
+      <div class="confirm-dialog">
+        <h3 id="confirm-title">确认提交当前操作？</h3>
+        <p id="confirm-body">这一步会直接写入系统数据，请确认当前信息无误。</p>
+        <div class="confirm-actions">
+          <button type="button" class="ghost-button" id="confirm-cancel">再检查一下</button>
+          <button type="button" class="primary-button" id="confirm-submit">继续执行</button>
+        </div>
+      </div>
+    </div>
+
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+      crossorigin="anonymous"
+    ></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <script src="/js/app.js"></script>
+  </body>
+</html>

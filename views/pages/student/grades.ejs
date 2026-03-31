@@ -1,0 +1,100 @@
+<section class="page-grid">
+  <div class="stats-grid">
+    <article class="metric">
+      <span class="metric-label">平均成绩</span>
+      <div class="metric-value"><%= formatScore(summary.average_score) %></div>
+    </article>
+    <article class="metric">
+      <span class="metric-label">加权绩点</span>
+      <div class="metric-value <%= Number(summary.weighted_gpa || 0) < 2 ? 'copy-danger' : '' %>"><%= formatGpa(summary.weighted_gpa) %></div>
+    </article>
+    <article class="metric">
+      <span class="metric-label">已获学分</span>
+      <div class="metric-value"><%= formatScore(summary.earned_credits) %></div>
+    </article>
+    <article class="metric">
+      <span class="metric-label">不及格课程</span>
+      <div class="metric-value <%= Number(summary.warning_count || 0) > 0 ? 'copy-danger' : '' %>"><%= formatCompactCount(summary.warning_count) %></div>
+    </article>
+  </div>
+
+  <div class="panel workspace-panel">
+    <div class="section-head">
+      <div>
+        <h3 class="section-title">成绩查询</h3>
+      </div>
+      <div class="section-actions">
+        <a href="/student/learning-profile" class="ghost-button">学习画像</a>
+        <button type="button" class="ghost-button" data-bs-toggle="modal" data-bs-target="#student-gpa-rule">
+          绩点规则
+        </button>
+      </div>
+    </div>
+
+    <form class="filter-shell mb-4" method="get">
+      <input class="form-control" name="keyword" placeholder="搜索课程名、课程号或开课编号" value="<%= filters.keyword %>" />
+
+      <select class="form-select" name="term_id">
+        <option value="">全部学期</option>
+        <% terms.forEach(function(term) { %>
+          <option value="<%= term.id %>" <%= String(filters.term_id) === String(term.id) ? 'selected' : '' %>><%= term.name %></option>
+        <% }) %>
+      </select>
+
+      <select class="form-select" name="course_type">
+        <option value="">全部课程性质</option>
+        <option value="必修" <%= filters.course_type === '必修' ? 'selected' : '' %>>必修</option>
+        <option value="选修" <%= filters.course_type === '选修' ? 'selected' : '' %>>选修</option>
+      </select>
+
+      <button class="primary-button" type="submit">筛选成绩</button>
+    </form>
+
+    <% if (grades.length) { %>
+      <div class="table-scroll table-scroll-module">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>课程名</th>
+              <th>课程号</th>
+              <th>开课编号</th>
+              <th>课程性质</th>
+              <th>学分</th>
+              <th>任课教师</th>
+              <th>学期</th>
+              <th>平时分</th>
+              <th>期末分</th>
+              <th>总评</th>
+              <th>绩点</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% grades.forEach(function(item) { const failed = Number(item.total_score || 0) < 60; %>
+              <tr class="<%= failed ? 'table-row-danger' : '' %>">
+                <td><strong><%= item.course_name %></strong></td>
+                <td><%= item.course_code %></td>
+                <td><%= item.section_code %></td>
+                <td><span class="status-pill <%= badgeClass(item.course_type) %>"><%= item.course_type %></span></td>
+                <td><%= formatScore(item.credits) %></td>
+                <td><%= item.teacher_name %></td>
+                <td><%= item.term_name %></td>
+                <td><%= formatScore(item.usual_score) %></td>
+                <td><%= formatScore(item.final_exam_score) %></td>
+                <td><%= formatScore(item.total_score) %></td>
+                <td><%= formatGpa(item.grade_point) %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="mt-4">
+        <%- include('../../partials/pagination', { pagination: pagination }) %>
+      </div>
+    <% } else { %>
+      <%- include('../../partials/empty-state', { title: '暂无匹配成绩', icon: 'solar:chart-linear' }) %>
+    <% } %>
+  </div>
+
+  <%- include('../../partials/gpa-rule-modal', { modalId: 'student-gpa-rule' }) %>
+</section>

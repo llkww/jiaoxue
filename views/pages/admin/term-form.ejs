@@ -1,0 +1,20 @@
+<%- include('../../partials/admin/editor-shell', {
+  eyebrow: mode === 'edit' ? '学期设置' : '新增学期',
+  title: mode === 'edit' ? `编辑 ${term?.name || ''}` : '新增学期',
+  description: mode === 'edit' ? '完善学期信息。' : '新建学期信息。',
+  formAction: mode === 'edit' ? `/admin/terms/${term?.id}` : '/admin/terms',
+  method: mode === 'edit' ? 'PUT' : 'POST',
+  submitLabel: mode === 'edit' ? '保存更新' : '创建学期',
+  backHref,
+  formPartial: 'forms/term-fields',
+  formData: { term: term || {}, mode },
+  sideCard: {
+    label: '当前控制',
+    value: Number(term?.is_current || 0) === 1 ? '当前学期' : '学期配置',
+    description: '设为当前学期后，工作台和选课页会自动切换到该学期。',
+    items: [
+      { label: '默认状态', value: term?.status || '进行中' },
+      { label: '控制范围', value: '选课与课表' }
+    ]
+  }
+}) %>

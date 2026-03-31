@@ -1,0 +1,74 @@
+<section class="page-grid">
+  <div class="panel workspace-panel">
+    <div class="section-head">
+      <div>
+        <h3 class="section-title"><%= section.course_name %></h3>
+      </div>
+      <div class="section-actions">
+        <a href="<%= backHref %>" class="ghost-button" data-restore-page-state>返回全校课表</a>
+      </div>
+    </div>
+
+    <div class="stats-grid mb-4">
+      <article class="metric">
+        <span class="metric-label">开课编号</span>
+        <div class="metric-value"><%= section.section_code %></div>
+      </article>
+      <article class="metric">
+        <span class="metric-label">任课教师</span>
+        <div class="metric-value"><%= section.teacher_name %></div>
+      </article>
+      <article class="metric">
+        <span class="metric-label">课程性质</span>
+        <div class="metric-value"><%= section.course_type %></div>
+      </article>
+      <article class="metric">
+        <span class="metric-label">容量</span>
+        <div class="metric-value"><%= section.selected_count %> / <%= section.capacity %></div>
+      </article>
+    </div>
+
+    <div class="schedule-scroll">
+      <table class="schedule-table">
+        <thead>
+          <tr>
+            <th>节次</th>
+            <th>周一</th>
+            <th>周二</th>
+            <th>周三</th>
+            <th>周四</th>
+            <th>周五</th>
+            <th>周六</th>
+            <th>周日</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% scheduleRows.forEach(function(row) { %>
+            <tr>
+              <th>
+                <div><%= row.period.label %></div>
+                <div class="muted-copy"><%= row.period.time %></div>
+              </th>
+              <% row.days.forEach(function(day) { %>
+                <% if (day && day.skip) { %>
+                <% } else if (day) { %>
+                  <td rowspan="<%= day.span %>">
+                    <div class="schedule-card">
+                      <strong><%= day.course_name %></strong>
+                      <div class="muted-copy"><%= day.section_code %></div>
+                      <div class="muted-copy"><%= day.teacher_name %></div>
+                      <div class="muted-copy"><%= day.building_name %> <%= day.room_number %></div>
+                      <div class="muted-copy"><%= day.weeks_text || '--' %></div>
+                    </div>
+                  </td>
+                <% } else { %>
+                  <td></td>
+                <% } %>
+              <% }) %>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>

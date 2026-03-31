@@ -1,0 +1,20 @@
+<%- include('../../partials/admin/editor-shell', {
+  eyebrow: mode === 'edit' ? '教师档案' : '教师建档',
+  title: mode === 'edit' ? `编辑 ${teacher?.full_name || ''}` : '新增教师',
+  description: mode === 'edit' ? '管理员维护公共档案字段，私有字段由教师端维护。' : '工号保存后自动生成，默认密码为 teacher123。',
+  formAction: mode === 'edit' ? `/admin/teachers/${teacher?.id}` : '/admin/teachers',
+  method: mode === 'edit' ? 'PUT' : 'POST',
+  submitLabel: mode === 'edit' ? '保存更新' : '创建教师',
+  backHref,
+  formPartial: 'forms/teacher-fields',
+  formData: { teacher: teacher || {}, departments, mode },
+  sideCard: {
+    label: '建档提示',
+    value: mode === 'edit' ? '教师公共信息' : '默认密码 teacher123',
+    description: mode === 'edit' ? '研究方向、联系方式等私有信息以教师端最新数据为准。' : '账号创建后状态默认启用。',
+    items: [
+      { label: '账号状态', value: '启用' },
+      { label: '角色类型', value: '教师' }
+    ]
+  }
+}) %>

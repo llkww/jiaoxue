@@ -1,0 +1,28 @@
+<section class="page-grid">
+  <article class="panel announcement-detail <%= announcement.category === '学业预警' ? 'announcement-detail-warning' : '' %>">
+    <div class="section-head">
+      <div class="stack-gap-sm">
+        <div class="stack-inline">
+          <span class="status-pill <%= badgeClass(announcement.category) %>"><%= announcement.category %></span>
+          <span class="status-pill <%= badgeClass(announcement.priority) %>"><%= announcement.priority %></span>
+        </div>
+        <h3 class="section-title"><%= announcement.title %></h3>
+        <div class="muted-copy">
+          发布人：<%= announcement.publisher_name || 'ϵͳ' %>
+          ·
+          发布时间：<%= announcement.published_at ? dayjs(announcement.published_at).format('YYYY-MM-DD HH:mm') : '--' %>
+          <% if (announcement.student_no) { %>
+            · 面向学号：<%= announcement.student_no %>
+          <% } %>
+        </div>
+      </div>
+      <div class="section-actions">
+        <a href="<%= backHref %>" class="ghost-button" data-restore-page-state>返回列表</a>
+      </div>
+    </div>
+
+    <div class="announcement-article">
+      <p><%= announcement.content %></p>
+    </div>
+  </article>
+</section>

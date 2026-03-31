@@ -1,0 +1,91 @@
+<section class="page-grid">
+  <div class="panel workspace-panel">
+    <div class="section-head">
+      <div>
+        <h3 class="section-title">学期管理</h3>
+      </div>
+      <div class="section-actions">
+        <a
+          href="/admin/terms/new?return_to=<%= encodeURIComponent(returnTo) %>"
+          class="primary-button"
+          data-admin-modal
+        >
+          新增学期
+        </a>
+      </div>
+    </div>
+
+    <form class="filter-shell mb-4" method="get">
+      <input class="form-control" name="keyword" placeholder="搜索学期名称、学年或标签" value="<%= filters.keyword %>" />
+      <select class="form-select" name="status">
+        <option value="">全部状态</option>
+        <% ['规划中', '进行中', '已归档'].forEach(function(status) { %>
+          <option value="<%= status %>" <%= filters.status === status ? 'selected' : '' %>><%= status %></option>
+        <% }) %>
+      </select>
+      <button class="primary-button" type="submit">筛选学期</button>
+    </form>
+
+    <% if (terms.length) { %>
+      <div class="table-scroll table-scroll-module">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>学期</th>
+              <th>教学周期</th>
+              <th>选课窗口</th>
+              <th>状态</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% terms.forEach(function(item) { %>
+              <tr>
+                <td>
+                  <strong><%= item.name %></strong>
+                  <div class="muted-copy"><%= item.academic_year %> · <%= item.semester_label %></div>
+                </td>
+                <td><%= item.start_date %> 至 <%= item.end_date %></td>
+                <td><%= item.selection_start %> 至 <%= item.selection_end %></td>
+                <td>
+                  <span class="status-pill <%= badgeClass(item.is_current ? '进行中' : item.status) %>"><%= item.is_current ? '当前学期' : item.status %></span>
+                </td>
+                <td class="table-actions">
+                  <a
+                    href="/admin/terms/<%= item.id %>/edit?return_to=<%= encodeURIComponent(returnTo) %>"
+                    class="ghost-button"
+                    data-admin-modal
+                  >
+                    编辑
+                  </a>
+                  <form action="/admin/terms/<%= item.id %>" method="post" data-confirm="确认删除该学期？">
+                    <input type="hidden" name="_method" value="DELETE" />
+                    <input type="hidden" name="return_to" value="<%= returnTo %>" />
+                    <button type="submit" class="ghost-button">删除</button>
+                  </form>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+      <div class="mt-4">
+        <%- include('../../partials/pagination', { pagination: pagination }) %>
+      </div>
+    <% } else { %>
+      <%- include('../../partials/empty-state', {
+        title: '没有找到符合条件的学期',
+        icon: 'solar:calendar-mark-linear'
+      }) %>
+      <div class="mt-3">
+        <a
+          href="/admin/terms/new?return_to=<%= encodeURIComponent(returnTo) %>"
+          class="primary-button"
+          data-admin-modal
+        >
+          新增学期
+        </a>
+      </div>
+    <% } %>
+  </div>
+</section>

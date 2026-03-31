@@ -1,0 +1,51 @@
+<section class="page-grid">
+  <div class="panel">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow mb-2">评价</p>
+        <h3 class="section-title">教学评价</h3>
+      </div>
+    </div>
+
+    <form class="filter-shell mb-4" method="get">
+      <input class="form-control" name="keyword" placeholder="搜索课程、开课编号、学生或教师" value="<%= filters.keyword %>" />
+      <select class="form-select" name="term_id">
+        <option value="">全部学期</option>
+        <% terms.forEach(function(item) { %>
+          <option value="<%= item.id %>" <%= String(filters.term_id) === String(item.id) ? 'selected' : '' %>><%= item.name %></option>
+        <% }) %>
+      </select>
+      <select class="form-select" name="rating">
+        <option value="">全部评分</option>
+        <% [5, 4, 3, 2, 1].forEach(function(item) { %>
+          <option value="<%= item %>" <%= String(filters.rating) === String(item) ? 'selected' : '' %>><%= item %> 星</option>
+        <% }) %>
+      </select>
+      <button class="primary-button" type="submit">筛选评价</button>
+    </form>
+
+    <% if (evaluations.length) { %>
+      <div class="quick-card-list">
+        <% evaluations.forEach(function(item) { %>
+          <article class="quick-card <%= item.rating <= 2 ? 'quick-card-warning' : '' %>">
+            <div class="stack-gap-sm">
+              <div class="stack-inline">
+                <span class="status-pill <%= badgeClass(item.course_type) %>"><%= item.course_type %></span>
+                <span class="status-pill <%= item.rating <= 2 ? 'is-negative' : 'is-positive' %>"><%= item.rating %> 星</span>
+              </div>
+              <strong><%= item.course_name %> · <%= item.section_code %></strong>
+              <div class="muted-copy"><%= item.term_name %> · 学生：<%= item.student_name %> · 教师：<%= item.teacher_name %></div>
+              <p class="section-copy mb-0"><%= item.content %></p>
+              <div class="muted-copy"><%= dayjs(item.created_at).format('YYYY-MM-DD HH:mm') %></div>
+            </div>
+          </article>
+        <% }) %>
+      </div>
+      <div class="mt-4">
+        <%- include('../../partials/pagination', { pagination: pagination }) %>
+      </div>
+    <% } else { %>
+      <%- include('../../partials/empty-state', { title: '暂无符合条件的教学评价', icon: 'solar:chat-square-like-linear' }) %>
+    <% } %>
+  </div>
+</section>

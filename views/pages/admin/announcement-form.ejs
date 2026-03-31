@@ -1,0 +1,9 @@
+<%- include('../../partials/admin/editor-shell', {
+  title: mode === 'edit' ? `编辑 ${announcement?.title || '公告'}` : '新增公告',
+  formAction: mode === 'edit' ? `/admin/announcements/${announcement?.id}` : '/admin/announcements',
+  method: mode === 'edit' ? 'PUT' : 'POST',
+  submitLabel: mode === 'edit' ? '保存更新' : '发布公告',
+  backHref,
+  formPartial: 'forms/announcement-fields',
+  formData: { announcement: announcement || {}, mode }
+}) %>

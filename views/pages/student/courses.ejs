@@ -1,0 +1,148 @@
+<% const recommendedQuery = new URLSearchParams({ keyword: filters.keyword || '', weekday: filters.weekday || '', course_type: filters.course_type || '', scope: 'recommended' }).toString(); %>
+<% const allQuery = new URLSearchParams({ keyword: filters.keyword || '', weekday: filters.weekday || '', course_type: filters.course_type || '', scope: 'all' }).toString(); %>
+<% const currentPageUrl = buildQuery() ? `/student/courses?${buildQuery()}` : '/student/courses'; %>
+
+<section class="page-grid">
+  <div class="panel workspace-panel">
+    <div class="section-head">
+      <div>
+        <h3 class="section-title">在线选课</h3>
+      </div>
+      <span class="status-pill <%= selectionOpen ? 'is-positive' : 'is-warning' %>">
+        <%= selectionOpen ? '当前学期可选课' : '当前暂无可选课' %>
+      </span>
+    </div>
+
+    <form class="filter-shell mb-4" method="get">
+      <div class="workspace-tabs workspace-tabs-compact">
+        <a href="/student/courses?<%= recommendedQuery %>" class="workspace-tab <%= filters.scope === 'recommended' ? 'is-active' : '' %>">
+          <span>推荐课程</span>
+        </a>
+        <a href="/student/courses?<%= allQuery %>" class="workspace-tab <%= filters.scope === 'all' ? 'is-active' : '' %>">
+          <span>全部课程</span>
+        </a>
+      </div>
+
+      <input class="form-control" name="keyword" placeholder="搜索课程、教师或开课编号" value="<%= filters.keyword %>" />
+      <input type="hidden" name="scope" value="<%= filters.scope %>" />
+
+      <select class="form-select" name="weekday">
+        <option value="">全部星期</option>
+        <option value="1" <%= filters.weekday === '1' ? 'selected' : '' %>>周一</option>
+        <option value="2" <%= filters.weekday === '2' ? 'selected' : '' %>>周二</option>
+        <option value="3" <%= filters.weekday === '3' ? 'selected' : '' %>>周三</option>
+        <option value="4" <%= filters.weekday === '4' ? 'selected' : '' %>>周四</option>
+        <option value="5" <%= filters.weekday === '5' ? 'selected' : '' %>>周五</option>
+        <option value="6" <%= filters.weekday === '6' ? 'selected' : '' %>>周六</option>
+        <option value="7" <%= filters.weekday === '7' ? 'selected' : '' %>>周日</option>
+      </select>
+
+      <select class="form-select" name="course_type">
+        <option value="">全部课程性质</option>
+        <option value="必修" <%= filters.course_type === '必修' ? 'selected' : '' %>>必修</option>
+        <option value="选修" <%= filters.course_type === '选修' ? 'selected' : '' %>>选修</option>
+      </select>
+
+      <button class="primary-button" type="submit">筛选课程</button>
+
+      <% if (!recommendation?.hasPlan) { %>
+        <div class="w-100 muted-copy">当前专业暂无培养方案，“推荐课程”暂不可用。</div>
+      <% } else if (filters.scope === 'recommended') { %>
+        <div class="w-100 muted-copy">推荐课程只显示本学期培养方案课程，以及历史未通过且本学期有开设的课程。</div>
+      <% } %>
+    </form>
+
+    <% if (sections.length) { %>
+      <div class="table-scroll table-scroll-module">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>课程名称</th>
+              <th>课程号</th>
+              <th>开课编号</th>
+              <th>课程性质</th>
+              <th>学分</th>
+              <th>考核方式</th>
+              <th>任课教师</th>
+              <th>上课时间</th>
+              <th>上课周次</th>
+              <th>教室</th>
+              <th>容量</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% sections.forEach(function(item) { const remain = item.capacity - item.selected_count; %>
+              <tr>
+                <td><strong><%= item.course_name %></strong></td>
+                <td><%= item.course_code %></td>
+                <td><%= item.section_code %></td>
+                <td><span class="status-pill <%= badgeClass(item.course_type) %>"><%= item.course_type %></span></td>
+                <td><%= formatScore(item.credits) %></td>
+                <td><%= item.assessment_method %></td>
+                <td><%= item.teacher_name %></td>
+                <td><%= item.label %></td>
+                <td><%= item.weeks_text || '--' %></td>
+                <td><%= item.building_name %> <%= item.room_number %></td>
+                <td>
+                  <div><%= item.selected_count %> / <%= item.capacity %></div>
+                  <div class="muted-copy <%= remain <= 0 ? 'copy-danger' : '' %>">
+                    <%= remain <= 0 ? '名额已满' : `剩余 ${remain}` %>
+                  </div>
+                </td>
+                <td>
+                  <div class="stack-gap-sm">
+                    <a href="/student/sections/<%= item.id %>?back=<%= encodeURIComponent(currentPageUrl) %>" class="ghost-button" data-restore-page-state>详情</a>
+
+                    <% if (Number(item.is_selected) === 1 && item.canDrop) { %>
+                      <form
+                        action="/student/enrollments/<%= item.enrollment_id %>/drop"
+                        method="post"
+                        data-loading-form
+                        data-confirm="确认退选这门课程后，当前成绩草稿也会一并清空。"
+                      >
+                        <input type="hidden" name="return_to" value="<%= currentPageUrl %>" />
+                        <button type="submit" class="ghost-button">退课</button>
+                      </form>
+                    <% } else if (Number(item.is_selected) === 1) { %>
+                      <span class="status-pill is-neutral">已选课程</span>
+                    <% } else if (!selectionOpen) { %>
+                      <button type="button" class="ghost-button" disabled>当前不可选</button>
+                    <% } else if (item.canSelect) { %>
+                      <form action="/student/courses/<%= item.id %>/select" method="post" data-loading-form>
+                        <input type="hidden" name="return_to" value="<%= currentPageUrl %>" />
+                        <button type="submit" class="primary-button">选课</button>
+                      </form>
+                      <% if (item.hasPassedCourse) { %>
+                        <div class="muted-copy">该课程已有历史及格记录，但仍允许重新选择本学期开课。</div>
+                      <% } %>
+                    <% } else if (remain <= 0) { %>
+                      <button type="button" class="ghost-button" disabled>已满员</button>
+                    <% } else { %>
+                      <button type="button" class="ghost-button" disabled>当前不可选</button>
+                    <% } %>
+                  </div>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="mt-4">
+        <%- include('../../partials/pagination', { pagination: pagination }) %>
+      </div>
+    <% } else { %>
+      <%- include('../../partials/empty-state', {
+        title: filters.scope === 'recommended' ? '暂无推荐课程' : '暂无匹配课程',
+        description:
+          filters.scope === 'recommended'
+            ? recommendation?.hasPlan
+              ? '当前推荐列表下没有可显示的本学期开课记录。'
+              : '当前专业暂无培养方案，推荐课程暂不可用。'
+            : '当前筛选条件下没有可显示的开课记录。',
+        icon: 'solar:book-bookmark-linear'
+      }) %>
+    <% } %>
+  </div>
+</section>

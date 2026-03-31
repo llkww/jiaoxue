@@ -1,0 +1,206 @@
+<section class="page-grid">
+  <div class="split-grid teacher-detail-hero">
+    <div class="panel workspace-panel teacher-detail-summary">
+      <div class="section-head">
+        <div>
+          <h3 class="section-title"><%= section.course_name %></h3>
+        </div>
+        <div class="section-actions">
+          <a href="<%= backHref %>" class="ghost-button" data-restore-page-state>返回列表</a>
+          <span class="status-pill is-neutral"><%= section.section_code %></span>
+          <span class="status-pill is-neutral"><%= section.term_name %></span>
+          <span class="status-pill <%= badgeClass(section.course_type) %>"><%= section.course_type %></span>
+          <span class="status-pill <%= badgeClass(section.selection_status) %>"><%= section.selection_status %></span>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <article class="metric">
+          <span class="metric-label">上课时间</span>
+          <div class="metric-value metric-value-term"><%= section.label %></div>
+        </article>
+        <article class="metric">
+          <span class="metric-label">上课地点</span>
+          <div class="metric-value metric-value-term"><%= section.building_name %> <%= section.room_number %></div>
+        </article>
+        <article class="metric">
+          <span class="metric-label">考核方式</span>
+          <div class="metric-value metric-value-term"><%= section.assessment_method %></div>
+        </article>
+        <article class="metric">
+          <span class="metric-label">学分</span>
+          <div class="metric-value"><%= formatScore(section.credits) %></div>
+        </article>
+      </div>
+    </div>
+
+    <div class="panel workspace-panel teacher-detail-settings">
+      <div class="section-head">
+        <div>
+          <h3 class="section-title">成绩设置</h3>
+        </div>
+        <button type="button" class="ghost-button" data-bs-toggle="modal" data-bs-target="#teacher-gpa-rule">绩点规则</button>
+      </div>
+
+      <form action="/teacher/sections/<%= section.id %>/weights" method="post" class="form-shell teacher-weight-form" data-loading-form data-preserve-scroll>
+        <input type="hidden" name="return_to" value="<%= currentUrl %>" />
+        <div class="compact-grid-2">
+          <div>
+            <label class="field-label">平时成绩占比</label>
+            <input class="form-control" type="number" name="usual_weight" min="0" max="100" value="<%= section.usual_weight %>" required />
+          </div>
+          <div>
+            <label class="field-label">期末成绩占比</label>
+            <input class="form-control" type="number" name="final_weight" min="0" max="100" value="<%= section.final_weight %>" required />
+          </div>
+        </div>
+        <div class="form-actions form-actions-center mt-4">
+          <button type="submit" class="primary-button" data-success-state="占比已保存">保存占比</button>
+        </div>
+      </form>
+
+      <form
+        action="/teacher/sections/<%= section.id %>/publish"
+        method="post"
+        class="teacher-publish-form mt-4"
+        data-confirm="确认后将整门课程的已完成成绩统一发布给学生。"
+      >
+        <input type="hidden" name="return_to" value="<%= currentUrl %>" />
+        <button type="submit" class="ghost-button teacher-publish-button" data-success-state="成绩已发布">发布成绩</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="stats-grid">
+    <article class="metric">
+      <span class="metric-label">选课人数</span>
+      <div class="metric-value"><%= formatCompactCount(summary.student_count) %></div>
+    </article>
+    <article class="metric">
+      <span class="metric-label">已发布成绩</span>
+      <div class="metric-value"><%= formatCompactCount(summary.published_count) %></div>
+    </article>
+    <article class="metric">
+      <span class="metric-label">待录入成绩</span>
+      <div class="metric-value"><%= formatCompactCount(summary.pending_count) %></div>
+    </article>
+    <article class="metric">
+      <span class="metric-label">当前平均分</span>
+      <div class="metric-value"><%= formatScore(summary.average_score) %></div>
+    </article>
+  </div>
+
+  <% if (recentEvaluations.length) { %>
+    <div class="panel workspace-panel">
+      <div class="section-head">
+        <div>
+          <h3 class="section-title">最新教学评价</h3>
+        </div>
+        <a href="/teacher/evaluations?section_id=<%= section.id %>" class="text-button">查看全部</a>
+      </div>
+
+      <div class="quick-card-grid-2">
+        <% recentEvaluations.forEach(function(item) { %>
+          <article class="quick-card quick-card-compact">
+            <strong><%= item.student_name %> / <%= item.rating %> 星</strong>
+            <span class="muted-copy"><%= item.content %></span>
+          </article>
+        <% }) %>
+      </div>
+    </div>
+  <% } %>
+
+  <div class="panel workspace-panel">
+    <div class="section-head">
+      <div>
+        <h3 class="section-title">学生成绩册</h3>
+      </div>
+      <span class="status-pill is-neutral">输入成绩后自动保存，并自动重算总评与绩点</span>
+    </div>
+
+    <form class="filter-shell mb-4" method="get">
+      <input type="hidden" name="return_to" value="<%= backHref %>" />
+      <input class="form-control" name="keyword" placeholder="搜索学号或姓名" value="<%= filters.keyword %>" />
+      <button class="primary-button" type="submit">搜索名单</button>
+    </form>
+
+    <% if (roster.length) { %>
+      <div class="table-scroll table-scroll-module">
+        <table class="data-table gradebook-table">
+          <thead>
+            <tr>
+              <th>学生姓名</th>
+              <th>学号</th>
+              <th>班级</th>
+              <th>平时分</th>
+              <th>期末分</th>
+              <th>总评</th>
+              <th>绩点</th>
+              <th>录入状态</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% roster.forEach(function(item) { const failed = Number(item.total_score || 0) < 60 && item.total_score !== null && item.total_score !== undefined; %>
+              <tr class="<%= failed ? 'table-row-danger' : '' %>">
+                <td><strong><%= item.student_name %></strong></td>
+                <td><%= item.student_no %></td>
+                <td><%= item.class_name %></td>
+                <td>
+                  <input
+                    class="form-control"
+                    type="number"
+                    step="0.1"
+                    name="usual_score"
+                    min="0"
+                    max="100"
+                    value="<%= item.usual_score ?? '' %>"
+                    form="grade-form-<%= item.enrollment_id %>"
+                  />
+                </td>
+                <td>
+                  <input
+                    class="form-control"
+                    type="number"
+                    step="0.1"
+                    name="final_exam_score"
+                    min="0"
+                    max="100"
+                    value="<%= item.final_exam_score ?? '' %>"
+                    form="grade-form-<%= item.enrollment_id %>"
+                  />
+                </td>
+                <td>
+                  <input class="form-control js-grade-total <%= failed ? 'is-danger' : '' %>" value="<%= formatScore(item.total_score) %>" disabled />
+                </td>
+                <td>
+                  <input class="form-control js-grade-point <%= failed ? 'is-danger' : '' %>" value="<%= formatGpa(item.grade_point) %>" disabled />
+                </td>
+                <td>
+                  <form id="grade-form-<%= item.enrollment_id %>" action="/teacher/enrollments/<%= item.enrollment_id %>/grade" method="post" class="inline-grade-form" data-ajax-grade-form>
+                    <input type="hidden" name="section_id" value="<%= section.id %>" />
+                    <span class="status-pill is-neutral js-grade-save-state">待录入</span>
+                  </form>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="mt-4">
+        <%- include('../../partials/pagination', { pagination: pagination }) %>
+      </div>
+    <% } else if (hasStudents) { %>
+      <%- include('../../partials/empty-state', {
+        title: '没有匹配到学生记录',
+        actionHref: `/teacher/sections/${section.id}?return_to=${encodeURIComponent(backHref)}`,
+        actionLabel: '清空搜索',
+        icon: 'solar:clipboard-search-linear'
+      }) %>
+    <% } else { %>
+      <%- include('../../partials/empty-state', { title: '当前暂无学生名单', icon: 'solar:user-id-linear' }) %>
+    <% } %>
+  </div>
+
+  <%- include('../../partials/gpa-rule-modal', { modalId: 'teacher-gpa-rule' }) %>
+</section>

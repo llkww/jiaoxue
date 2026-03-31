@@ -1,0 +1,288 @@
+<% const planDetail = programPlan?.planDetail; %>
+<% const profile = programPlan?.profile; %>
+
+<section class="page-grid">
+  <% if (!planDetail) { %>
+    <div class="panel workspace-panel">
+      <div class="section-head">
+        <div>
+          <h3 class="section-title">我的培养方案</h3>
+        </div>
+      </div>
+      <%- include('../../partials/empty-state', {
+        title: '暂无培养方案',
+        description: profile ? `${profile.major_name} 暂未配置培养方案。` : '当前账号暂未关联培养方案。',
+        icon: 'solar:square-academic-cap-linear'
+      }) %>
+    </div>
+  <% } else { %>
+    <% const summary = planDetail.summary; %>
+    <% const leftSemesters = planDetail.semesters.slice(0, Math.ceil(planDetail.semesters.length / 2)); %>
+    <% const rightSemesters = planDetail.semesters.slice(Math.ceil(planDetail.semesters.length / 2)); %>
+
+    <div class="panel workspace-panel program-plan-hero">
+      <div class="section-head">
+        <div>
+          <h3 class="section-title">我的培养方案</h3>
+        </div>
+        <div class="section-actions">
+          <span class="status-pill is-neutral"><%= profile.major_name %></span>
+          <span class="status-pill is-positive">第 <%= programPlan.currentSemesterNo || '--' %> 学期</span>
+        </div>
+      </div>
+
+      <div class="program-progress-shell">
+        <div class="program-progress-copy">
+          <strong>已修 <%= formatScore(summary.completedCredits) %> / <%= formatScore(summary.totalCredits) %> 学分</strong>
+          <span>当前在修 <%= formatScore(summary.selectedCredits) %> 学分</span>
+        </div>
+        <div class="program-progress-track">
+          <span class="program-progress-bar" style="width:<%= Number(summary.completionPercent || 0) %>%"></span>
+        </div>
+      </div>
+
+      <div class="program-summary-grid">
+        <article class="metric">
+          <span class="metric-label">总学分</span>
+          <div class="metric-value"><%= formatScore(summary.totalCredits) %></div>
+        </article>
+        <article class="metric">
+          <span class="metric-label">已修学分</span>
+          <div class="metric-value"><%= formatScore(summary.completedCredits) %></div>
+        </article>
+        <article class="metric">
+          <span class="metric-label">在修学分</span>
+          <div class="metric-value"><%= formatScore(summary.selectedCredits) %></div>
+        </article>
+        <article class="metric">
+          <span class="metric-label">未通过课程</span>
+          <div class="metric-value <%= summary.warningCount > 0 ? 'copy-danger' : '' %>"><%= formatCompactCount(summary.warningCount) %></div>
+        </article>
+      </div>
+    </div>
+
+    <div class="panel workspace-panel">
+      <div class="section-head">
+        <div>
+          <h3 class="section-title">培养方案地图</h3>
+        </div>
+      </div>
+
+      <div class="program-map-scroll">
+        <div class="program-map-canvas program-map-canvas-symmetric">
+          <div class="program-map-column is-left">
+            <% leftSemesters.forEach(function(semester) { %>
+              <section class="program-semester-branch is-left">
+                <div class="program-branch-shell is-left">
+                  <% semester.modules.forEach(function(module) {
+                    const completedCredits = module.courses
+                      .filter((course) => course.status === '通过')
+                      .reduce((sum, course) => sum + Number(course.credits || 0), 0);
+                    const selectedCredits = module.courses
+                      .filter((course) => course.isSelectedCurrent)
+                      .reduce((sum, course) => sum + Number(course.credits || 0), 0);
+                    const failedCount = module.courses.filter((course) => course.hasOutstandingFailure).length;
+                    const payload = encodeURIComponent(JSON.stringify({
+                      moduleName: module.moduleName,
+                      moduleType: module.moduleType,
+                      requiredCredits: module.requiredCredits,
+                      courses: module.courses
+                    }));
+                  %>
+                    <div class="program-branch-column">
+                      <button
+                        type="button"
+                        class="program-module-card program-module-card-mind"
+                        style="--module-accent:#146356"
+                        data-plan-module-detail="<%= payload %>"
+                        data-bs-toggle="modal"
+                        data-bs-target="#program-plan-modal"
+                      >
+                        <div class="program-module-head">
+                          <div class="stack-gap-sm">
+                            <strong><%= module.moduleName %></strong>
+                            <span><%= module.moduleType %></span>
+                          </div>
+                          <span class="status-pill <%= failedCount > 0 ? 'is-negative' : selectedCredits > 0 ? 'is-warning' : 'is-neutral' %>">
+                            <%= failedCount > 0 ? `${failedCount} 门未通过` : selectedCredits > 0 ? '当前有在修课程' : '尚未开始修读' %>
+                          </span>
+                        </div>
+
+                        <div class="program-module-meta">
+                          <div>
+                            <span>要求学分</span>
+                            <strong><%= formatScore(module.requiredCredits) %></strong>
+                          </div>
+                          <div>
+                            <span>课程数量</span>
+                            <strong><%= formatCompactCount(module.courses.length) %></strong>
+                          </div>
+                          <div>
+                            <span>已修学分</span>
+                            <strong><%= formatScore(completedCredits) %></strong>
+                          </div>
+                        </div>
+
+                        <div class="program-module-track">
+                          <span style="width:<%= module.requiredCredits ? Math.min(100, (completedCredits / module.requiredCredits) * 100) : 0 %>%"></span>
+                        </div>
+
+                        <div class="program-module-tags">
+                          <span class="program-course-chip <%= completedCredits >= module.requiredCredits ? 'is-success' : '' %>">
+                            已完成 <%= formatScore(completedCredits) %> 学分
+                          </span>
+                          <% if (selectedCredits > 0) { %>
+                            <span class="program-course-chip">在修 <%= formatScore(selectedCredits) %> 学分</span>
+                          <% } %>
+                        </div>
+                      </button>
+                    </div>
+                  <% }) %>
+                </div>
+
+                <article class="program-semester-node program-semester-node-mind">
+                  <span class="status-pill is-neutral">学期节点</span>
+                  <strong>第 <%= semester.semesterNo %> 学期</strong>
+                  <div class="muted-copy">点击模块卡片可查看课程详情</div>
+                </article>
+              </section>
+            <% }) %>
+          </div>
+
+          <article class="program-root-node program-root-node-mind program-root-node-center">
+            <div class="stack-gap-sm">
+              <span class="status-pill is-neutral">培养方案总览</span>
+              <strong><%= planDetail.plan.plan_name %></strong>
+              <div class="muted-copy"><%= profile.major_name %></div>
+            </div>
+            <div class="program-root-stats">
+              <div>
+                <span>所属学院</span>
+                <strong><%= profile.department_name %></strong>
+              </div>
+              <div>
+                <span>毕业要求</span>
+                <strong><%= formatScore(summary.totalCredits) %> 学分</strong>
+              </div>
+              <div>
+                <span>完成进度</span>
+                <strong><%= formatScore(summary.completionPercent) %>%</strong>
+              </div>
+            </div>
+          </article>
+
+          <div class="program-map-column is-right">
+            <% rightSemesters.forEach(function(semester) { %>
+              <section class="program-semester-branch is-right">
+                <article class="program-semester-node program-semester-node-mind">
+                  <span class="status-pill is-neutral">学期节点</span>
+                  <strong>第 <%= semester.semesterNo %> 学期</strong>
+                  <div class="muted-copy">点击模块卡片可查看课程详情</div>
+                </article>
+
+                <div class="program-branch-shell is-right">
+                  <% semester.modules.forEach(function(module) {
+                    const completedCredits = module.courses
+                      .filter((course) => course.status === '通过')
+                      .reduce((sum, course) => sum + Number(course.credits || 0), 0);
+                    const selectedCredits = module.courses
+                      .filter((course) => course.isSelectedCurrent)
+                      .reduce((sum, course) => sum + Number(course.credits || 0), 0);
+                    const failedCount = module.courses.filter((course) => course.hasOutstandingFailure).length;
+                    const payload = encodeURIComponent(JSON.stringify({
+                      moduleName: module.moduleName,
+                      moduleType: module.moduleType,
+                      requiredCredits: module.requiredCredits,
+                      courses: module.courses
+                    }));
+                  %>
+                    <div class="program-branch-column">
+                      <button
+                        type="button"
+                        class="program-module-card program-module-card-mind"
+                        style="--module-accent:#146356"
+                        data-plan-module-detail="<%= payload %>"
+                        data-bs-toggle="modal"
+                        data-bs-target="#program-plan-modal"
+                      >
+                        <div class="program-module-head">
+                          <div class="stack-gap-sm">
+                            <strong><%= module.moduleName %></strong>
+                            <span><%= module.moduleType %></span>
+                          </div>
+                          <span class="status-pill <%= failedCount > 0 ? 'is-negative' : selectedCredits > 0 ? 'is-warning' : 'is-neutral' %>">
+                            <%= failedCount > 0 ? `${failedCount} 门未通过` : selectedCredits > 0 ? '当前有在修课程' : '尚未开始修读' %>
+                          </span>
+                        </div>
+
+                        <div class="program-module-meta">
+                          <div>
+                            <span>要求学分</span>
+                            <strong><%= formatScore(module.requiredCredits) %></strong>
+                          </div>
+                          <div>
+                            <span>课程数量</span>
+                            <strong><%= formatCompactCount(module.courses.length) %></strong>
+                          </div>
+                          <div>
+                            <span>已修学分</span>
+                            <strong><%= formatScore(completedCredits) %></strong>
+                          </div>
+                        </div>
+
+                        <div class="program-module-track">
+                          <span style="width:<%= module.requiredCredits ? Math.min(100, (completedCredits / module.requiredCredits) * 100) : 0 %>%"></span>
+                        </div>
+
+                        <div class="program-module-tags">
+                          <span class="program-course-chip <%= completedCredits >= module.requiredCredits ? 'is-success' : '' %>">
+                            已完成 <%= formatScore(completedCredits) %> 学分
+                          </span>
+                          <% if (selectedCredits > 0) { %>
+                            <span class="program-course-chip">在修 <%= formatScore(selectedCredits) %> 学分</span>
+                          <% } %>
+                        </div>
+                      </button>
+                    </div>
+                  <% }) %>
+                </div>
+              </section>
+            <% }) %>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% } %>
+</section>
+
+<div class="modal fade tm-modal" id="program-plan-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content tm-modal-card">
+      <div class="modal-header tm-modal-header">
+        <h3 class="section-title mb-0" id="program-plan-modal-title">模块详情</h3>
+        <button type="button" class="btn-close tm-modal-close-icon" data-bs-dismiss="modal" aria-label="关闭"></button>
+      </div>
+      <div class="modal-body">
+        <div class="program-modal-summary" id="program-plan-modal-summary"></div>
+        <div class="table-scroll table-scroll-module">
+          <table class="data-table mb-0">
+            <thead>
+              <tr>
+                <th>课程名</th>
+                <th>课程号</th>
+                <th>课程性质</th>
+                <th>学分</th>
+                <th>学时</th>
+                <th>推荐学期</th>
+                <th>修读状态</th>
+                <th>总评</th>
+                <th>绩点</th>
+              </tr>
+            </thead>
+            <tbody id="program-plan-modal-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

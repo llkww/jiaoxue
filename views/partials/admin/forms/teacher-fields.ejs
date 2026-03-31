@@ -1,0 +1,71 @@
+<% const item = teacher || {}; %>
+<% const isEdit = mode === 'edit'; %>
+
+<div class="row g-3 w-100">
+  <div class="col-md-6">
+    <label class="field-label">登录账号</label>
+    <input class="form-control" name="username" value="<%= item.username || '' %>" autocomplete="username" required />
+  </div>
+  <div class="col-md-6">
+    <label class="field-label">姓名</label>
+    <input class="form-control" name="full_name" value="<%= item.full_name || '' %>" autocomplete="name" required />
+  </div>
+
+  <% if (isEdit) { %>
+    <div class="col-md-6">
+      <label class="field-label">工号</label>
+      <input class="form-control" value="<%= item.teacher_no || '' %>" readonly />
+    </div>
+  <% } else { %>
+    <div class="col-12">
+      <div class="muted-copy">工号将在保存后根据所属院系自动生成且终身不变。</div>
+    </div>
+  <% } %>
+
+  <div class="col-md-6">
+    <label class="field-label">院系</label>
+    <select class="form-select" name="department_id" data-search-placeholder="搜索院系" required>
+      <option value="">请选择院系</option>
+      <% departments.forEach(function(department) { %>
+        <option value="<%= department.id %>" <%= String(item.department_id || '') === String(department.id) ? 'selected' : '' %>>
+          <%= department.name %>
+        </option>
+      <% }) %>
+    </select>
+  </div>
+  <div class="col-md-6">
+    <label class="field-label">职称</label>
+    <input class="form-control" name="title" value="<%= item.title || '讲师' %>" />
+  </div>
+  <div class="col-md-6">
+    <label class="field-label">办公地点</label>
+    <input class="form-control" name="office_location" value="<%= item.office_location || '' %>" />
+  </div>
+
+  <% if (isEdit) { %>
+    <div class="col-md-6">
+      <label class="field-label">研究方向</label>
+      <input class="form-control" value="<%= item.specialty_text || '--' %>" readonly />
+    </div>
+    <div class="col-md-6">
+      <label class="field-label">性别</label>
+      <input class="form-control" value="<%= item.gender || '--' %>" readonly />
+    </div>
+    <div class="col-md-6">
+      <label class="field-label">邮箱</label>
+      <input class="form-control" value="<%= item.email || '--' %>" readonly />
+    </div>
+    <div class="col-md-6">
+      <label class="field-label">手机号</label>
+      <input class="form-control" value="<%= item.phone || '--' %>" readonly />
+    </div>
+    <div class="col-md-6">
+      <label class="field-label">出生日期</label>
+      <input class="form-control" value="<%= item.birth_date || '--' %>" readonly />
+    </div>
+    <div class="col-12">
+      <label class="field-label">联系地址</label>
+      <textarea class="form-control" rows="3" readonly><%= item.address || '--' %></textarea>
+    </div>
+  <% } %>
+</div>

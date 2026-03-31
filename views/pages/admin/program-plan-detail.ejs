@@ -1,0 +1,149 @@
+<% const detailReturnTo = `/admin/program-plans/${planDetail.plan.id}`; %>
+
+<section class="page-grid">
+  <div class="panel workspace-panel">
+    <div class="section-head">
+      <div>
+        <h3 class="section-title"><%= planDetail.plan.plan_name %></h3>
+        <div class="muted-copy"><%= planDetail.plan.department_name %> / <%= planDetail.plan.major_name %></div>
+      </div>
+      <div class="section-actions">
+        <a href="<%= returnTo %>" class="ghost-button" data-restore-page-state>返回列表</a>
+        <a href="/admin/program-plans/<%= planDetail.plan.id %>/edit?return_to=<%= encodeURIComponent(detailReturnTo) %>" class="ghost-button" data-admin-modal>编辑方案</a>
+        <form action="/admin/program-plans/<%= planDetail.plan.id %>" method="post" data-confirm="确认删除这个培养方案？方案下模块与课程映射会一并删除。">
+          <input type="hidden" name="_method" value="DELETE" />
+          <input type="hidden" name="return_to" value="<%= returnTo %>" />
+          <button type="submit" class="ghost-button is-danger">删除方案</button>
+        </form>
+        <a href="/admin/program-plans/<%= planDetail.plan.id %>/modules/new?return_to=<%= encodeURIComponent(detailReturnTo) %>" class="primary-button" data-admin-modal>新增模块</a>
+      </div>
+    </div>
+
+    <div class="program-progress-shell">
+      <div class="program-progress-copy">
+        <strong>方案总学分 <%= formatScore(planDetail.plan.total_credits) %></strong>
+        <span>
+          <%= formatCompactCount(planDetail.modules.length) %> 个模块 /
+          <%= formatCompactCount(planDetail.modules.reduce((sum, module) => sum + module.courses.length, 0)) %> 门课程
+        </span>
+      </div>
+      <div class="program-progress-track">
+        <span class="program-progress-bar" style="width: 100%"></span>
+      </div>
+    </div>
+
+    <div class="table-scroll table-scroll-module mt-4">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>学院号</th>
+            <th>学院名称</th>
+            <th>专业号</th>
+            <th>专业名称</th>
+            <th>总学分</th>
+            <th>模块数</th>
+            <th>课程数</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><%= planDetail.plan.department_no %></td>
+            <td><%= planDetail.plan.department_name %></td>
+            <td><%= planDetail.plan.major_code %></td>
+            <td><%= planDetail.plan.major_name %></td>
+            <td><%= formatScore(planDetail.plan.total_credits) %></td>
+            <td><%= formatCompactCount(planDetail.modules.length) %></td>
+            <td><%= formatCompactCount(planDetail.modules.reduce((sum, item) => sum + item.courses.length, 0)) %></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <% if (planDetail.semesters.length) { %>
+    <% planDetail.semesters.forEach(function(semester) { %>
+      <div class="panel workspace-panel">
+        <div class="section-head">
+          <div>
+            <h3 class="section-title">第 <%= semester.semesterNo %> 学期</h3>
+          </div>
+        </div>
+
+        <div class="quick-card-list">
+          <% semester.modules.forEach(function(module) { const hasCourses = module.courses.length > 0; %>
+            <article class="quick-card">
+              <div class="section-head mb-3">
+                <div>
+                  <strong><%= module.moduleName %></strong>
+                </div>
+                <div class="section-actions">
+                  <span class="status-pill is-neutral"><%= module.moduleType %></span>
+                  <span class="status-pill is-neutral">要求 <%= formatScore(module.requiredCredits) %> 学分</span>
+                  <a href="/admin/program-plans/<%= planDetail.plan.id %>/modules/<%= module.id %>/edit?return_to=<%= encodeURIComponent(detailReturnTo) %>" class="ghost-button" data-admin-modal>编辑模块</a>
+                  <a href="/admin/program-plans/<%= planDetail.plan.id %>/modules/<%= module.id %>/courses/new?return_to=<%= encodeURIComponent(detailReturnTo) %>" class="ghost-button" data-admin-modal>加入课程</a>
+                  <form action="/admin/program-plans/<%= planDetail.plan.id %>/modules/<%= module.id %>" method="post" <%= hasCourses ? '' : 'data-confirm="确认删除这个模块？"' %>>
+                    <input type="hidden" name="_method" value="DELETE" />
+                    <input type="hidden" name="return_to" value="<%= detailReturnTo %>" />
+                    <button type="submit" class="ghost-button is-danger" <%= hasCourses ? 'disabled title="请先删除模块内课程"' : '' %>>删除模块</button>
+                  </form>
+                </div>
+              </div>
+
+              <div class="table-scroll table-scroll-module">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>课程名称</th>
+                      <th>课程号</th>
+                      <th>课程性质</th>
+                      <th>考核方式</th>
+                      <th>学分</th>
+                      <th>学时</th>
+                      <th>推荐学期</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% if (module.courses.length) { %>
+                      <% module.courses.forEach(function(course) { %>
+                        <tr>
+                          <td><strong><%= course.courseName %></strong></td>
+                          <td><%= course.courseCode %></td>
+                          <td><span class="status-pill <%= course.courseType === '必修' ? 'is-positive' : 'is-neutral' %>"><%= course.courseType %></span></td>
+                          <td><%= course.assessmentMethod %></td>
+                          <td><%= formatScore(course.credits) %></td>
+                          <td><%= formatCompactCount(course.totalHours) %></td>
+                          <td>第 <%= course.recommendedSemester %> 学期</td>
+                          <td class="table-actions">
+                            <a href="/admin/program-plans/<%= planDetail.plan.id %>/modules/<%= module.id %>/courses/<%= course.planCourseId %>/edit?return_to=<%= encodeURIComponent(detailReturnTo) %>" class="ghost-button" data-admin-modal>编辑</a>
+                            <form action="/admin/program-plans/<%= planDetail.plan.id %>/modules/<%= module.id %>/courses/<%= course.planCourseId %>" method="post" data-confirm="确认移出这门课程？">
+                              <input type="hidden" name="_method" value="DELETE" />
+                              <input type="hidden" name="return_to" value="<%= detailReturnTo %>" />
+                              <button type="submit" class="ghost-button is-danger">删除</button>
+                            </form>
+                          </td>
+                        </tr>
+                      <% }) %>
+                    <% } else { %>
+                      <tr>
+                        <td colspan="8" class="text-center text-muted">当前模块还没有课程</td>
+                      </tr>
+                    <% } %>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          <% }) %>
+        </div>
+      </div>
+    <% }) %>
+  <% } else { %>
+    <div class="panel workspace-panel">
+      <%- include('../../partials/empty-state', {
+        title: '当前方案还没有模块',
+        description: '可以先新增学期模块，再继续维护课程映射。',
+        icon: 'solar:square-academic-cap-linear'
+      }) %>
+    </div>
+  <% } %>
+</section>

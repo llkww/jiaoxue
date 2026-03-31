@@ -1,0 +1,125 @@
+<% const currentPageUrl = buildQuery() ? `/student/enrollments?${buildQuery()}` : '/student/enrollments'; %>
+
+<section class="page-grid">
+  <div class="stats-grid">
+    <article class="metric">
+      <span class="metric-label">当前已选课程</span>
+      <div class="metric-value"><%= formatCompactCount(summary.active_count) %></div>
+    </article>
+    <article class="metric">
+      <span class="metric-label">当前学分</span>
+      <div class="metric-value"><%= formatScore(summary.active_credits) %></div>
+    </article>
+    <article class="metric">
+      <span class="metric-label">已修课程</span>
+      <div class="metric-value"><%= formatCompactCount(summary.completed_count) %></div>
+    </article>
+    <article class="metric">
+      <span class="metric-label">已修学分</span>
+      <div class="metric-value"><%= formatScore(summary.completed_credits) %></div>
+    </article>
+  </div>
+
+  <div class="panel workspace-panel">
+    <div class="section-head">
+      <div>
+        <h3 class="section-title">我的课程</h3>
+      </div>
+    </div>
+
+    <form class="filter-shell mb-4" method="get">
+      <input class="form-control" name="keyword" placeholder="搜索课程名或开课编号" value="<%= filters.keyword %>" />
+
+      <select class="form-select" name="term_id">
+        <option value="">全部学期</option>
+        <% terms.forEach(function(term) { %>
+          <option value="<%= term.id %>" <%= String(filters.term_id) === String(term.id) ? 'selected' : '' %>><%= term.name %></option>
+        <% }) %>
+      </select>
+
+      <select class="form-select" name="progress">
+        <option value="">全部修读状态</option>
+        <option value="已选" <%= filters.progress === '已选' ? 'selected' : '' %>>已选</option>
+        <option value="已修" <%= filters.progress === '已修' ? 'selected' : '' %>>已修</option>
+      </select>
+
+      <select class="form-select" name="course_type">
+        <option value="">全部课程性质</option>
+        <option value="必修" <%= filters.course_type === '必修' ? 'selected' : '' %>>必修</option>
+        <option value="选修" <%= filters.course_type === '选修' ? 'selected' : '' %>>选修</option>
+      </select>
+
+      <button class="primary-button" type="submit">筛选</button>
+    </form>
+
+    <% if (enrollments.length) { %>
+      <div class="table-scroll table-scroll-module">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>课程名</th>
+              <th>课程号</th>
+              <th>开课编号</th>
+              <th>课程性质</th>
+              <th>学分</th>
+              <th>任课教师</th>
+              <th>上课时间</th>
+              <th>上课周次</th>
+              <th>上课地点</th>
+              <th>学期</th>
+              <th>修读状态</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% enrollments.forEach(function(item) { %>
+              <tr>
+                <td><strong><%= item.course_name %></strong></td>
+                <td><%= item.course_code %></td>
+                <td><%= item.section_code %></td>
+                <td><span class="status-pill <%= badgeClass(item.course_type) %>"><%= item.course_type %></span></td>
+                <td><%= formatScore(item.credits) %></td>
+                <td><%= item.teacher_name %></td>
+                <td><%= item.label %></td>
+                <td><%= item.weeks_text || '--' %></td>
+                <td><%= item.building_name %> <%= item.room_number %></td>
+                <td><%= item.term_name %></td>
+                <td><span class="status-pill <%= badgeClass(item.progressLabel) %>"><%= item.progressLabel %></span></td>
+                <td>
+                  <div class="stack-gap-sm">
+                    <a href="/student/sections/<%= item.section_id || item.id %>?back=<%= encodeURIComponent(currentPageUrl) %>" class="ghost-button" data-restore-page-state>详情</a>
+                    <% if (item.canDrop) { %>
+                      <form
+                        action="/student/enrollments/<%= item.id %>/drop"
+                        method="post"
+                        data-loading-form
+                        data-confirm="确认退选这门课程后，当前成绩草稿也会一并清空。"
+                      >
+                        <input type="hidden" name="return_to" value="<%= currentPageUrl %>" />
+                        <button type="submit" class="ghost-button">退课</button>
+                      </form>
+                    <% } else { %>
+                      <span class="muted-copy"><%= item.progressLabel %></span>
+                    <% } %>
+                  </div>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="mt-4">
+        <%- include('../../partials/pagination', { pagination: pagination }) %>
+      </div>
+    <% } else { %>
+      <%- include('../../partials/empty-state', {
+        title: '暂无课程记录',
+        description: '当前只显示已选与已修课程。',
+        actionHref: '/student/courses',
+        actionLabel: '去选课',
+        icon: 'solar:bookmark-square-linear'
+      }) %>
+    <% } %>
+  </div>
+</section>

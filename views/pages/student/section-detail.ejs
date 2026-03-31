@@ -1,0 +1,104 @@
+<section class="page-grid">
+  <div class="panel workspace-panel">
+    <div class="section-head">
+      <div>
+        <h3 class="section-title"><%= section.course_name %></h3>
+      </div>
+      <div class="section-actions">
+        <a href="<%= backHref %>" class="ghost-button" data-restore-page-state>返回列表</a>
+        <span class="status-pill is-neutral"><%= section.section_code %></span>
+        <span class="status-pill <%= badgeClass(section.selection_status) %>"><%= section.selection_status %></span>
+      </div>
+    </div>
+
+    <div class="stats-grid mb-4">
+      <article class="metric">
+        <span class="metric-label">课程号</span>
+        <div class="metric-value"><%= section.course_code %></div>
+      </article>
+      <article class="metric">
+        <span class="metric-label">任课教师</span>
+        <div class="metric-value"><%= section.teacher_name %></div>
+      </article>
+      <article class="metric">
+        <span class="metric-label">学期</span>
+        <div class="metric-value metric-value-term"><%= section.term_name %></div>
+      </article>
+      <article class="metric">
+        <span class="metric-label">容量</span>
+        <div class="metric-value"><%= section.selected_count %> / <%= section.capacity %></div>
+      </article>
+    </div>
+
+    <div class="quick-card-grid-2 mb-4">
+      <article class="quick-card">
+        <div class="stack-gap-sm">
+          <strong>课程属性</strong>
+          <div class="muted-copy">专业：<%= section.department_name %> / <%= section.major_name %></div>
+          <div class="muted-copy">课程性质：<%= section.course_type %></div>
+          <div class="muted-copy">学分：<%= formatScore(section.credits) %></div>
+          <div class="muted-copy">学时：<%= section.total_hours %></div>
+          <div class="muted-copy">考核方式：<%= section.assessment_method %></div>
+          <div class="muted-copy">课程说明：<%= section.description || '--' %></div>
+        </div>
+      </article>
+
+      <article class="quick-card">
+        <div class="stack-gap-sm">
+          <strong>开课属性</strong>
+          <div class="muted-copy">教师工号：<%= section.teacher_no %></div>
+          <div class="muted-copy">教师职称：<%= section.teacher_title || '--' %></div>
+          <div class="muted-copy">上课时间：<%= section.label %></div>
+          <div class="muted-copy">上课周次：<%= section.weeks_text || '--' %></div>
+          <div class="muted-copy">教室：<%= section.building_name %> <%= section.room_number %> / <%= section.room_type %></div>
+          <div class="muted-copy">平时占比：<%= section.usual_weight %>%</div>
+          <div class="muted-copy">期末占比：<%= section.final_weight %>%</div>
+          <div class="muted-copy">备注：<%= section.notes || '--' %></div>
+        </div>
+      </article>
+    </div>
+
+    <div class="schedule-scroll">
+      <table class="schedule-table">
+        <thead>
+          <tr>
+            <th>节次</th>
+            <th>周一</th>
+            <th>周二</th>
+            <th>周三</th>
+            <th>周四</th>
+            <th>周五</th>
+            <th>周六</th>
+            <th>周日</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% scheduleRows.forEach(function(row) { %>
+            <tr>
+              <th>
+                <div><%= row.period.label %></div>
+                <div class="muted-copy"><%= row.period.time %></div>
+              </th>
+              <% row.days.forEach(function(day) { %>
+                <% if (day && day.skip) { %>
+                <% } else if (day) { %>
+                  <td rowspan="<%= day.span %>">
+                    <div class="schedule-card">
+                      <strong><%= day.course_name %></strong>
+                      <div class="muted-copy"><%= day.section_code %></div>
+                      <div class="muted-copy"><%= day.teacher_name %></div>
+                      <div class="muted-copy"><%= day.building_name %> <%= day.room_number %></div>
+                      <div class="muted-copy"><%= day.weeks_text || '--' %></div>
+                    </div>
+                  </td>
+                <% } else { %>
+                  <td></td>
+                <% } %>
+              <% }) %>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>

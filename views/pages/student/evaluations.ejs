@@ -1,0 +1,112 @@
+<section class="page-grid">
+  <div class="panel workspace-panel">
+    <div class="section-head">
+      <div>
+        <h3 class="section-title">教学评价</h3>
+      </div>
+    </div>
+
+    <% if (evaluations.length) { %>
+      <div class="table-scroll table-scroll-module">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>课程名</th>
+              <th>课程号</th>
+              <th>开课编号</th>
+              <th>课程性质</th>
+              <th>任课教师</th>
+              <th>学期</th>
+              <th>总评</th>
+              <th>评价状态</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% evaluations.forEach(function(item) { %>
+              <tr>
+                <td><strong><%= item.course_name %></strong></td>
+                <td><%= item.course_code %></td>
+                <td><%= item.section_code %></td>
+                <td><span class="status-pill <%= badgeClass(item.course_type) %>"><%= item.course_type %></span></td>
+                <td><%= item.teacher_name %></td>
+                <td><%= item.term_name %></td>
+                <td><%= item.total_score !== null && item.total_score !== undefined ? formatScore(item.total_score) : '--' %></td>
+                <td>
+                  <span class="status-pill <%= item.rating ? 'is-positive' : 'is-warning' %>">
+                    <%= item.rating ? '已评价' : '待评价' %>
+                  </span>
+                </td>
+                <td>
+                  <button
+                    type="button"
+                    class="ghost-button"
+                    data-evaluation-trigger
+                    data-bs-toggle="modal"
+                    data-bs-target="#student-evaluation-modal"
+                    data-evaluation-id="<%= item.enrollment_id %>"
+                    data-evaluation-title="<%= item.course_name %>"
+                    data-evaluation-course="<%= `${item.course_code} · ${item.section_code}` %>"
+                    data-evaluation-teacher="<%= item.teacher_name %>"
+                    data-evaluation-rating="<%= item.rating || '' %>"
+                    data-evaluation-content="<%= encodeURIComponent(item.content || '') %>"
+                    data-evaluation-submit="<%= item.rating ? '保存修改' : '提交评价' %>"
+                  >
+                    <%= item.rating ? '修改评价' : '评价课程' %>
+                  </button>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+      <div class="mt-4">
+        <%- include('../../partials/pagination', { pagination: pagination }) %>
+      </div>
+    <% } else { %>
+      <%- include('../../partials/empty-state', { title: '暂无可评价课程', icon: 'solar:chat-square-like-linear' }) %>
+    <% } %>
+  </div>
+</section>
+
+<div class="modal fade tm-modal" id="student-evaluation-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content tm-modal-card">
+      <div class="modal-header tm-modal-header">
+        <h3 class="section-title mb-0" id="student-evaluation-title">教学评价</h3>
+        <button type="button" class="btn-close tm-modal-close-icon" data-bs-dismiss="modal" aria-label="关闭"></button>
+      </div>
+      <div class="modal-body">
+        <form action="/student/evaluations/0" method="post" class="form-shell" data-loading-form id="student-evaluation-form">
+          <input type="hidden" name="return_to" value="<%= currentPageUrl || '/student/evaluations' %>" />
+          <div class="row g-3 w-100">
+            <div class="col-md-6">
+              <label class="field-label">课程信息</label>
+              <input class="form-control" id="student-evaluation-course" disabled />
+            </div>
+            <div class="col-md-6">
+              <label class="field-label">任课教师</label>
+              <input class="form-control" id="student-evaluation-teacher" disabled />
+            </div>
+            <div class="col-md-4">
+              <label class="field-label">评分</label>
+              <select class="form-select" name="rating" id="student-evaluation-rating" required>
+                <option value="">请选择</option>
+                <% for (let star = 5; star >= 1; star -= 1) { %>
+                  <option value="<%= star %>"><%= star %> 星</option>
+                <% } %>
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="field-label">评价内容</label>
+              <textarea class="form-control" rows="5" name="content" id="student-evaluation-content" required></textarea>
+            </div>
+            <div class="col-12 form-actions form-actions-center">
+              <button type="submit" class="primary-button" data-success-state="评价已保存" id="student-evaluation-submit">提交评价</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

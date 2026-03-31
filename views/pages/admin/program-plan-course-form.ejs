@@ -1,0 +1,20 @@
+<%- include('../../partials/admin/editor-shell', {
+  eyebrow: '方案课程',
+  title: mode === 'edit' ? '编辑课程映射' : `新增课程 · ${moduleItem?.module_name || ''}`,
+  description: mode === 'edit' ? '调整课程归属模块和推荐学期。' : '把课程加入当前培养方案模块。',
+  formAction: mode === 'edit' ? `/admin/program-plans/${plan?.id}/modules/${moduleItem?.id}/courses/${mapping?.id}` : `/admin/program-plans/${plan?.id}/modules/${moduleItem?.id}/courses`,
+  method: mode === 'edit' ? 'PUT' : 'POST',
+  submitLabel: mode === 'edit' ? '保存课程' : '加入培养方案',
+  backHref,
+  formPartial: 'forms/program-plan-course-fields',
+  formData: { mapping: mapping || {}, plan, moduleItem, courses },
+  sideCard: {
+    label: '所属模块',
+    value: moduleItem?.module_name || '培养方案模块',
+    description: `${plan?.plan_name || ''} · 第 ${moduleItem?.semester_no || '--'} 学期`,
+    items: [
+      { label: '课程推荐学期', value: mapping?.recommended_semester || moduleItem?.semester_no || '--' },
+      { label: '学分同步', value: '自动重算' }
+    ]
+  }
+}) %>

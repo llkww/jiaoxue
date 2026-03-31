@@ -1,0 +1,20 @@
+<%- include('../../partials/admin/editor-shell', {
+  eyebrow: mode === 'edit' ? '院系信息' : '新增院系',
+  title: mode === 'edit' ? `编辑 ${department?.name || ''}` : '新增院系',
+  description: mode === 'edit' ? '完善院系信息。' : '新建院系信息。',
+  formAction: mode === 'edit' ? `/admin/foundations/departments/${department?.id}` : '/admin/foundations/departments',
+  method: mode === 'edit' ? 'PUT' : 'POST',
+  submitLabel: mode === 'edit' ? '保存更新' : '创建院系',
+  backHref,
+  formPartial: 'forms/department-fields',
+  formData: { department: department || {}, mode },
+  sideCard: {
+    label: '基础目录',
+    value: '院系层级',
+    description: '院系是专业与教师信息的基础归属。',
+    items: [
+      { label: '引用模块', value: '专业、教师' },
+      { label: '维护位置', value: '基础信息' }
+    ]
+  }
+}) %>

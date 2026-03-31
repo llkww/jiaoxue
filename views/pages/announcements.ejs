@@ -1,0 +1,46 @@
+<% const currentListUrl = buildQuery() ? `/announcements?${buildQuery()}` : '/announcements'; %>
+<section class="panel workspace-panel">
+  <div class="section-head">
+    <div>
+      <h3 class="section-title">公告中心</h3>
+    </div>
+  </div>
+
+  <form class="filter-shell mb-4" method="get">
+    <input class="form-control" name="keyword" placeholder="搜索标题或正文" value="<%= filters.keyword %>" />
+    <select class="form-select" name="priority">
+      <option value="">全部优先级</option>
+      <option value="普通" <%= filters.priority === '普通' ? 'selected' : '' %>>普通</option>
+      <option value="重要" <%= filters.priority === '重要' ? 'selected' : '' %>>重要</option>
+      <option value="紧急" <%= filters.priority === '紧急' ? 'selected' : '' %>>紧急</option>
+    </select>
+    <button class="primary-button" type="submit">筛选公告</button>
+  </form>
+
+  <% if (announcements.length) { %>
+    <div class="announcement-grid">
+      <% announcements.forEach(function(item) { %>
+        <article class="quick-card <%= item.category === '学业预警' ? 'quick-card-warning' : '' %>">
+          <div class="stack-gap-sm">
+            <div class="stack-inline">
+              <span class="status-pill <%= badgeClass(item.category) %>"><%= item.category %></span>
+              <span class="status-pill <%= badgeClass(item.priority) %>"><%= item.priority %></span>
+            </div>
+            <strong><%= item.title %></strong>
+            <div class="muted-copy">
+              发布人：<%= item.publisher_name || 'ϵͳ' %> · <%= item.published_at ? dayjs(item.published_at).format('YYYY-MM-DD HH:mm') : '--' %>
+            </div>
+            <div class="muted-copy"><%= item.content.length > 120 ? `${item.content.slice(0, 120)}...` : item.content %></div>
+            <a href="/announcements/<%= item.id %>?back=<%= encodeURIComponent(currentListUrl) %>" class="ghost-button mt-2">查看详情</a>
+          </div>
+        </article>
+      <% }) %>
+    </div>
+
+    <div class="mt-4">
+      <%- include('../partials/pagination', { pagination: pagination }) %>
+    </div>
+  <% } else { %>
+    <%- include('../partials/empty-state', { title: '暂无符合条件的公告', icon: 'solar:bell-bing-linear' }) %>
+  <% } %>
+</section>

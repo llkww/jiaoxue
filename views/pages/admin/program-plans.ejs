@@ -1,0 +1,78 @@
+<section class="page-grid">
+  <div class="panel workspace-panel">
+    <div class="section-head">
+      <div>
+        <h3 class="section-title">培养方案管理</h3>
+      </div>
+      <div class="section-actions">
+        <a href="/admin/program-plans/new?return_to=<%= encodeURIComponent(returnTo) %>" class="primary-button" data-admin-modal>新增培养方案</a>
+      </div>
+    </div>
+
+    <form class="filter-shell mb-4" method="get">
+      <input class="form-control" name="keyword" placeholder="搜索方案名称或专业名称" value="<%= filters.keyword %>" />
+      <select class="form-select" name="major_id">
+        <option value="">全部专业</option>
+        <% majors.forEach(function(item) { %>
+          <option value="<%= item.id %>" <%= String(filters.major_id) === String(item.id) ? 'selected' : '' %>>
+            <%= item.major_code %> / <%= item.name %>
+          </option>
+        <% }) %>
+      </select>
+      <button class="primary-button" type="submit">筛选方案</button>
+    </form>
+
+    <% if (plans.length) { %>
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>方案名称</th>
+              <th>学院号</th>
+              <th>学院名称</th>
+              <th>专业号</th>
+              <th>专业名称</th>
+              <th>总学分</th>
+              <th>模块数</th>
+              <th>课程数</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% plans.forEach(function(item) { %>
+              <tr>
+                <td><strong><%= item.plan_name %></strong></td>
+                <td><%= item.department_no %></td>
+                <td><%= item.department_name %></td>
+                <td><%= item.major_code %></td>
+                <td><%= item.major_name %></td>
+                <td><%= formatScore(item.total_credits) %></td>
+                <td><%= formatCompactCount(item.module_count) %></td>
+                <td><%= formatCompactCount(item.course_count) %></td>
+                <td class="table-actions table-actions-wide">
+                  <a href="/admin/program-plans/<%= item.id %>?return_to=<%= encodeURIComponent(returnTo) %>" class="ghost-button">查看详情</a>
+                  <a href="/admin/program-plans/<%= item.id %>/edit?return_to=<%= encodeURIComponent(returnTo) %>" class="ghost-button" data-admin-modal>编辑</a>
+                  <form action="/admin/program-plans/<%= item.id %>" method="post" data-confirm="确认删除这个培养方案？方案下的模块和课程映射会一并删除。">
+                    <input type="hidden" name="_method" value="DELETE" />
+                    <input type="hidden" name="return_to" value="<%= returnTo %>" />
+                    <button type="submit" class="ghost-button is-danger">删除</button>
+                  </form>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="mt-4">
+        <%- include('../../partials/pagination', { pagination: pagination }) %>
+      </div>
+    <% } else { %>
+      <%- include('../../partials/empty-state', {
+        title: '暂无培养方案',
+        description: '当前筛选条件下没有找到培养方案记录。',
+        icon: 'solar:square-academic-cap-linear'
+      }) %>
+    <% } %>
+  </div>
+</section>

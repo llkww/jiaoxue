@@ -1,0 +1,20 @@
+<%- include('../../partials/admin/editor-shell', {
+  eyebrow: '方案模块',
+  title: mode === 'edit' ? `编辑 ${moduleItem?.module_name || ''}` : `新增模块 · ${plan?.plan_name || ''}`,
+  description: mode === 'edit' ? '调整模块学期与名称，要求学分会自动汇总。' : '为当前培养方案增加新的模块分组。',
+  formAction: mode === 'edit' ? `/admin/program-plans/${plan?.id}/modules/${moduleItem?.id}` : `/admin/program-plans/${plan?.id}/modules`,
+  method: mode === 'edit' ? 'PUT' : 'POST',
+  submitLabel: mode === 'edit' ? '保存模块' : '创建模块',
+  backHref,
+  formPartial: 'forms/program-plan-module-fields',
+  formData: { moduleItem: moduleItem || {}, plan },
+  sideCard: {
+    label: '所属方案',
+    value: plan?.plan_name || '培养方案',
+    description: `${plan?.major_name || ''} · 第 ${moduleItem?.semester_no || 1} 学期模块`,
+    items: [
+      { label: '适用专业', value: plan?.major_name || '--' },
+      { label: '模块状态', value: '培养方案组成' }
+    ]
+  }
+}) %>

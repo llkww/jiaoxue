@@ -1,0 +1,76 @@
+<section class="page-grid">
+  <div class="panel workspace-panel">
+    <div class="section-head">
+      <div>
+        <h3 class="section-title">教学任务</h3>
+      </div>
+    </div>
+
+    <form class="filter-shell mb-4" method="get">
+      <input class="form-control" name="keyword" placeholder="搜索课程名、课程号或开课编号" value="<%= filters.keyword %>" />
+      <select class="form-select" name="term_id">
+        <option value="">全部学期</option>
+        <% terms.forEach(function(item) { %>
+          <option value="<%= item.id %>" <%= String(filters.term_id) === String(item.id) ? 'selected' : '' %>><%= item.name %></option>
+        <% }) %>
+      </select>
+      <select class="form-select" name="course_type">
+        <option value="">全部课程性质</option>
+        <option value="必修" <%= filters.course_type === '必修' ? 'selected' : '' %>>必修</option>
+        <option value="选修" <%= filters.course_type === '选修' ? 'selected' : '' %>>选修</option>
+      </select>
+      <select class="form-select" name="status">
+        <option value="">全部开课状态</option>
+        <option value="开放选课" <%= filters.status === '开放选课' ? 'selected' : '' %>>开放选课</option>
+        <option value="暂停选课" <%= filters.status === '暂停选课' ? 'selected' : '' %>>暂停选课</option>
+        <option value="已归档" <%= filters.status === '已归档' ? 'selected' : '' %>>已归档</option>
+      </select>
+      <button class="primary-button" type="submit">筛选任务</button>
+    </form>
+
+    <% if (sections.length) { %>
+      <div class="table-scroll table-scroll-module">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>课程名称</th>
+              <th>课程号</th>
+              <th>开课编号</th>
+              <th>课程性质</th>
+              <th>学分</th>
+              <th>学期</th>
+              <th>选课人数</th>
+              <th>成绩发布</th>
+              <th>开课状态</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% sections.forEach(function(item) { %>
+              <tr>
+                <td><strong><%= item.course_name %></strong></td>
+                <td><%= item.course_code %></td>
+                <td><%= item.section_code %></td>
+                <td><span class="status-pill <%= badgeClass(item.course_type) %>"><%= item.course_type %></span></td>
+                <td><%= formatScore(item.credits) %></td>
+                <td><%= item.term_name %></td>
+                <td><%= item.selected_count %> / <%= item.capacity %></td>
+                <td><%= item.published_count %> 人</td>
+                <td><span class="status-pill <%= badgeClass(item.selection_status) %>"><%= item.selection_status %></span></td>
+                <td>
+                  <a href="/teacher/sections/<%= item.id %>?return_to=<%= encodeURIComponent(returnTo) %>" class="primary-button">进入成绩册</a>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="mt-4">
+        <%- include('../../partials/pagination', { pagination: pagination }) %>
+      </div>
+    <% } else { %>
+      <%- include('../../partials/empty-state', { title: '暂无匹配的教学任务', icon: 'solar:case-round-linear' }) %>
+    <% } %>
+  </div>
+</section>

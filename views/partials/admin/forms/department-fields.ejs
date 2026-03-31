@@ -1,0 +1,19 @@
+<% const item = department || {}; %>
+<div class="row g-3 w-100">
+  <div class="col-md-4">
+    <label class="field-label">学院号</label>
+    <input class="form-control" name="department_no" value="<%= item.department_no || '' %>" maxlength="2" required />
+  </div>
+  <div class="col-md-4">
+    <label class="field-label">院系代码</label>
+    <input class="form-control" name="code" value="<%= item.code || '' %>" required />
+  </div>
+  <div class="col-md-4">
+    <label class="field-label">院系名称</label>
+    <input class="form-control" name="name" value="<%= item.name || '' %>" required />
+  </div>
+  <div class="col-12">
+    <label class="field-label">说明</label>
+    <textarea class="form-control" rows="4" name="description"><%= item.description || '' %></textarea>
+  </div>
+</div>

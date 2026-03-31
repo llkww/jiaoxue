@@ -1,0 +1,29 @@
+<% const item = mapping || {}; %>
+<div class="row g-3 w-100">
+  <div class="col-12">
+    <label class="field-label">选择课程</label>
+    <select class="form-select" name="course_id" required>
+      <% courses.forEach(function(course) { %>
+        <option value="<%= course.id %>" <%= String(item.course_id || '') === String(course.id) ? 'selected' : '' %>>
+          <%= course.course_code %> · <%= course.course_name %> · <%= course.course_type %> · <%= formatScore(course.credits) %> 学分
+        </option>
+      <% }) %>
+    </select>
+  </div>
+  <div class="col-md-6">
+    <label class="field-label">推荐学期</label>
+    <input
+      class="form-control"
+      type="number"
+      min="1"
+      max="8"
+      name="recommended_semester"
+      value="<%= item.recommended_semester || moduleItem?.semester_no || 1 %>"
+      required
+    />
+  </div>
+  <div class="col-md-6">
+    <label class="field-label">所属模块</label>
+    <input class="form-control" type="text" value="<%= moduleItem?.module_name || '--' %>" readonly />
+  </div>
+</div>

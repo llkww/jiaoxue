@@ -1,0 +1,36 @@
+{
+  "name": "teaching-management-system",
+  "version": "1.0.0",
+  "description": "基于 Node.js + Express + EJS + MySQL 的教学管理系统课程设计项目",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js",
+    "init-db": "node scripts/init-db.js"
+  },
+  "keywords": [
+    "teaching-management",
+    "express",
+    "ejs",
+    "mysql",
+    "railway"
+  ],
+  "author": "Codex",
+  "license": "MIT",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "dayjs": "^1.11.13",
+    "dotenv": "^16.4.7",
+    "ejs": "^3.1.10",
+    "express": "^4.21.2",
+    "express-async-errors": "^3.1.1",
+    "express-ejs-layouts": "^2.5.1",
+    "express-mysql-session": "^3.0.3",
+    "express-session": "^1.18.1",
+    "method-override": "^3.0.0",
+    "mysql2": "^3.12.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  }
+}

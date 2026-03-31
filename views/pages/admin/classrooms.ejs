@@ -1,0 +1,92 @@
+<section class="page-grid">
+  <div class="panel workspace-panel">
+    <div class="section-head">
+      <div>
+        <h3 class="section-title">教室管理</h3>
+      </div>
+      <div class="section-actions">
+        <a
+          href="/admin/classrooms/new?return_to=<%= encodeURIComponent(returnTo) %>"
+          class="primary-button"
+          data-admin-modal
+        >
+          新增教室
+        </a>
+      </div>
+    </div>
+
+    <form class="filter-shell mb-4" method="get">
+      <input class="form-control" name="keyword" placeholder="搜索教学楼、教室号或类型" value="<%= filters.keyword %>" />
+      <select class="form-select" name="building_name">
+        <option value="">全部教学楼</option>
+        <% buildings.forEach(function(item) { %>
+          <option value="<%= item.building_name %>" <%= filters.building_name === item.building_name ? 'selected' : '' %>><%= item.building_name %></option>
+        <% }) %>
+      </select>
+      <select class="form-select" name="room_type">
+        <option value="">全部类型</option>
+        <% roomTypes.forEach(function(item) { %>
+          <option value="<%= item.room_type %>" <%= filters.room_type === item.room_type ? 'selected' : '' %>><%= item.room_type %></option>
+        <% }) %>
+      </select>
+      <button class="primary-button" type="submit">筛选教室</button>
+    </form>
+
+    <% if (classrooms.length) { %>
+      <div class="table-scroll table-scroll-module">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>教室</th>
+              <th>类型</th>
+              <th>容量</th>
+              <th>关联开课</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% classrooms.forEach(function(item) { %>
+              <tr>
+                <td><strong><%= item.building_name %> <%= item.room_number %></strong></td>
+                <td><%= item.room_type %></td>
+                <td><%= item.capacity %> 人</td>
+                <td><%= item.section_count %> 门</td>
+                <td class="table-actions">
+                  <a
+                    href="/admin/classrooms/<%= item.id %>/edit?return_to=<%= encodeURIComponent(returnTo) %>"
+                    class="ghost-button"
+                    data-admin-modal
+                  >
+                    编辑
+                  </a>
+                  <form action="/admin/classrooms/<%= item.id %>" method="post" data-confirm="确认删除该教室？">
+                    <input type="hidden" name="_method" value="DELETE" />
+                    <input type="hidden" name="return_to" value="<%= returnTo %>" />
+                    <button type="submit" class="ghost-button">删除</button>
+                  </form>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+      <div class="mt-4">
+        <%- include('../../partials/pagination', { pagination: pagination }) %>
+      </div>
+    <% } else { %>
+      <%- include('../../partials/empty-state', {
+        title: '没有找到符合条件的教室',
+        icon: 'solar:buildings-2-linear'
+      }) %>
+      <div class="mt-3">
+        <a
+          href="/admin/classrooms/new?return_to=<%= encodeURIComponent(returnTo) %>"
+          class="primary-button"
+          data-admin-modal
+        >
+          新增教室
+        </a>
+      </div>
+    <% } %>
+  </div>
+</section>

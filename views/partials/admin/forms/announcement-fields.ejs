@@ -1,0 +1,39 @@
+<% const item = announcement || {}; %>
+<div class="row g-3 w-100">
+  <div class="col-12">
+    <label class="field-label">公告标题</label>
+    <input class="form-control" name="title" value="<%= item.title || '' %>" required />
+  </div>
+
+  <div class="col-md-4">
+    <label class="field-label">公告分类</label>
+    <select class="form-select" name="category">
+      <% ['系统公告', '教学通知', '学业预警'].forEach(function(category) { %>
+        <option value="<%= category %>" <%= (item.category || '系统公告') === category ? 'selected' : '' %>><%= category %></option>
+      <% }) %>
+    </select>
+  </div>
+
+  <div class="col-md-4">
+    <label class="field-label">面向角色</label>
+    <select class="form-select" name="target_role">
+      <% ['all', 'student', 'teacher', 'admin'].forEach(function(target) { %>
+        <option value="<%= target %>" <%= (item.target_role || 'all') === target ? 'selected' : '' %>><%= targetRoleLabel(target) %></option>
+      <% }) %>
+    </select>
+  </div>
+
+  <div class="col-md-4">
+    <label class="field-label">优先级</label>
+    <select class="form-select" name="priority">
+      <% ['普通', '重要', '紧急'].forEach(function(priority) { %>
+        <option value="<%= priority %>" <%= (item.priority || '普通') === priority ? 'selected' : '' %>><%= priority %></option>
+      <% }) %>
+    </select>
+  </div>
+
+  <div class="col-12">
+    <label class="field-label">公告正文</label>
+    <textarea class="form-control" rows="8" name="content" required><%= item.content || '' %></textarea>
+  </div>
+</div>

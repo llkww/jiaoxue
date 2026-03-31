@@ -1,0 +1,100 @@
+<% const selectedTermId = profile.selectedTerm?.id ? String(profile.selectedTerm.id) : ''; %>
+<% const scoreQuery = new URLSearchParams({ term_id: selectedTermId, mode: 'score' }).toString(); %>
+<% const gpaQuery = new URLSearchParams({ term_id: selectedTermId, mode: 'gpa' }).toString(); %>
+
+<section class="page-grid">
+  <div class="panel workspace-panel">
+    <div class="section-head">
+      <div>
+        <h3 class="section-title">学习画像</h3>
+      </div>
+      <div class="section-actions">
+        <a href="/student/grades" class="ghost-button">返回成绩查询</a>
+        <button type="button" class="ghost-button" data-bs-toggle="modal" data-bs-target="#student-learning-gpa-rule">
+          绩点规则
+        </button>
+      </div>
+    </div>
+
+    <% if (profile.terms?.length) { %>
+      <form class="filter-shell mb-4" method="get">
+        <div class="workspace-tabs workspace-tabs-compact">
+          <a href="/student/learning-profile?<%= gpaQuery %>" class="workspace-tab <%= profile.mode === 'gpa' ? 'is-active' : '' %>">
+            <span>绩点</span>
+          </a>
+          <a href="/student/learning-profile?<%= scoreQuery %>" class="workspace-tab <%= profile.mode === 'score' ? 'is-active' : '' %>">
+            <span>总评成绩</span>
+          </a>
+        </div>
+
+        <select class="form-select" name="term_id">
+          <% profile.terms.forEach(function(item) { %>
+            <option value="<%= item.id %>" <%= selectedTermId === String(item.id) ? 'selected' : '' %>><%= item.name %></option>
+          <% }) %>
+        </select>
+
+        <input type="hidden" name="mode" value="<%= profile.mode %>" />
+        <button class="primary-button" type="submit">切换学期</button>
+      </form>
+
+      <div class="stats-grid mb-4">
+        <article class="metric">
+          <span class="metric-label">当前学期</span>
+          <div class="metric-value metric-value-term"><%= profile.selectedTerm?.name || '--' %></div>
+        </article>
+        <article class="metric">
+          <span class="metric-label">已发布课程</span>
+          <div class="metric-value"><%= formatCompactCount(profile.summary?.published_count) %></div>
+        </article>
+        <article class="metric">
+          <span class="metric-label">平均总评</span>
+          <div class="metric-value <%= Number(profile.summary?.average_score || 0) < 60 ? 'copy-danger' : '' %>"><%= formatScore(profile.summary?.average_score) %></div>
+        </article>
+        <article class="metric">
+          <span class="metric-label">加权绩点</span>
+          <div class="metric-value <%= Number(profile.summary?.weighted_gpa || 0) < 2 ? 'copy-danger' : '' %>"><%= formatGpa(profile.summary?.weighted_gpa) %></div>
+        </article>
+      </div>
+
+      <div class="panel inset-panel">
+        <canvas
+          class="radar-canvas-lg"
+          data-chart-config='<%- JSON.stringify({
+            type: "radar",
+            data: {
+              labels: profile.radar.labels,
+              datasets: [{
+                label: profile.radar.datasetLabel,
+                data: profile.radar.values,
+                borderColor: profile.mode === "score" ? "#9a6537" : "#146356",
+                backgroundColor: profile.mode === "score" ? "rgba(154, 101, 55, 0.16)" : "rgba(20, 99, 86, 0.16)",
+                pointBackgroundColor: profile.mode === "score" ? "#9a6537" : "#146356",
+                pointBorderColor: "#ffffff",
+                pointRadius: 5,
+                pointHoverRadius: 6
+              }]
+            },
+            options: {
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { position: "bottom" }
+              },
+              scales: {
+                r: {
+                  min: 0,
+                  max: profile.radar.max,
+                  ticks: { stepSize: profile.radar.stepSize },
+                  pointLabels: { font: { size: 13 } }
+                }
+              }
+            }
+          }) %>'
+        ></canvas>
+      </div>
+    <% } else { %>
+      <%- include('../../partials/empty-state', { title: '暂无可生成画像的成绩记录', icon: 'solar:chart-2-linear' }) %>
+    <% } %>
+  </div>
+
+  <%- include('../../partials/gpa-rule-modal', { modalId: 'student-learning-gpa-rule' }) %>
+</section>

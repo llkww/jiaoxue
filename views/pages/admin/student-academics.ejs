@@ -1,0 +1,151 @@
+<section class="page-grid">
+  <div class="panel">
+    <div class="section-head">
+      <div>
+        <h3 class="section-title"><%= student.full_name %></h3>
+        <div class="muted-copy">
+          <%= student.student_no %> · <%= student.class_name %> · <%= student.major_name %>
+          <% if (student.phone || student.email) { %>
+            · <%= student.phone || '--' %> · <%= student.email || '--' %>
+          <% } %>
+        </div>
+      </div>
+      <div class="section-actions">
+        <a href="<%= returnTo %>" class="ghost-button" data-restore-page-state>返回学生管理</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats-grid">
+    <article class="metric">
+      <span class="metric-label">全部选课记录</span>
+      <div class="metric-value"><%= formatCompactCount(totalRecords) %></div>
+    </article>
+    <article class="metric">
+      <span class="metric-label">未修复必修课</span>
+      <div class="metric-value <%= currentWarningCount > 5 ? 'copy-danger' : '' %>"><%= formatCompactCount(currentWarningCount) %></div>
+    </article>
+    <article class="metric">
+      <span class="metric-label">已发预警</span>
+      <div class="metric-value"><%= formatCompactCount(warningHistory.length) %></div>
+    </article>
+    <article class="metric">
+      <span class="metric-label">学业预警条件</span>
+      <div class="metric-value"><%= currentWarningCount > 5 ? '满足' : '未达' %></div>
+    </article>
+  </div>
+
+  <div class="split-grid">
+    <div class="panel">
+      <div class="section-head">
+        <div>
+          <h3 class="section-title">预警判定</h3>
+        </div>
+        <form
+          action="/admin/students/<%= student.id %>/warnings"
+          method="post"
+          data-confirm="确认发布本学期学业预警？同一学期只可发布一次。"
+        >
+          <input type="hidden" name="return_to" value="<%= warningReturnTo %>" />
+          <button type="submit" class="primary-button" <%= currentWarningCount > 5 && !hasCurrentTermWarning ? '' : 'disabled' %>>&#21457;&#24067;&#23398;&#19994;&#39044;&#35686;</button>
+        </form>
+      </div>
+
+      <% if (outstandingCourses.length) { %>
+        <div class="quick-card-list">
+          <% outstandingCourses.forEach(function(item) { %>
+            <article class="quick-card <%= item.failed_attempts >= 2 ? 'quick-card-warning' : '' %>">
+              <div class="stack-gap-sm">
+                <div class="stack-inline">
+                  <span class="status-pill is-negative">未通过</span>
+                  <span class="status-pill is-neutral">第 <%= item.failed_attempts %> 次记录</span>
+                </div>
+                <strong><%= item.course_name %> · <%= item.course_code %></strong>
+                <div class="muted-copy">未通过学期：<%= item.failed_terms || '--' %></div>
+              </div>
+            </article>
+          <% }) %>
+        </div>
+      <% } else { %>
+        <%- include('../../partials/empty-state', { title: '当前没有未修复的必修课记录', icon: 'solar:shield-check-linear' }) %>
+      <% } %>
+    </div>
+
+    <div class="panel">
+      <div class="section-head">
+        <div>
+          <h3 class="section-title">历次发布记录</h3>
+        </div>
+      </div>
+
+      <% if (warningHistory.length) { %>
+        <div class="quick-card-list">
+          <% warningHistory.forEach(function(item) { %>
+            <article class="quick-card quick-card-warning">
+              <div class="stack-gap-sm">
+                <strong><%= item.title || '学业预警通知' %></strong>
+                <div class="muted-copy"><%= item.term_name %> · 未修复必修课 <%= item.required_failed_count %> 门</div>
+                <div class="muted-copy"><%= dayjs(item.created_at).format('YYYY-MM-DD HH:mm') %></div>
+              </div>
+            </article>
+          <% }) %>
+        </div>
+      <% } else { %>
+        <%- include('../../partials/empty-state', { title: '暂无学业预警历史', icon: 'solar:bell-bing-linear' }) %>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="section-head">
+      <div>
+          <h3 class="section-title">全部课程成绩</h3>
+      </div>
+    </div>
+
+    <% if (records.length) { %>
+      <div class="table-scroll table-scroll-module">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>课程名称</th>
+              <th>课程号</th>
+              <th>开课编号</th>
+              <th>课程性质</th>
+              <th>学期</th>
+              <th>教师</th>
+              <th>选课状态</th>
+              <th>成绩状态</th>
+              <th>总评</th>
+              <th>绩点</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% records.forEach(function(item) { const failed = item.total_score !== null && Number(item.total_score) < 60; %>
+              <tr class="<%= failed ? 'table-row-danger' : '' %>">
+                <td><strong><%= item.course_name %></strong></td>
+                <td><%= item.course_code %></td>
+                <td><%= item.section_code %></td>
+                <td><span class="status-pill <%= badgeClass(item.course_type) %>"><%= item.course_type %></span></td>
+                <td><%= item.term_name %></td>
+                <td><%= item.teacher_name %></td>
+                <td><span class="status-pill <%= badgeClass(item.enrollment_status) %>"><%= item.enrollment_status %></span></td>
+                <td><span class="status-pill <%= badgeClass(item.grade_status || '待录入') %>"><%= item.grade_status || '待录入' %></span></td>
+                <td><span class="<%= failed ? 'copy-danger' : '' %>"><%= formatScore(item.total_score) %></span></td>
+                <td><span class="<%= failed ? 'copy-danger' : '' %>"><%= formatGpa(item.grade_point) %></span></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="mt-4">
+        <%- include('../../partials/pagination', { pagination: pagination }) %>
+      </div>
+    <% } else { %>
+      <%- include('../../partials/empty-state', { title: '暂无课程记录', icon: 'solar:notebook-linear' }) %>
+    <% } %>
+  </div>
+</section>
+
+

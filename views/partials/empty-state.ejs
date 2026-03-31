@@ -1,0 +1,13 @@
+<section class="empty-state">
+  <div class="empty-ornament">
+    <iconify-icon icon="<%= icon || 'solar:document-text-linear' %>"></iconify-icon>
+  </div>
+  <h3><%= title %></h3>
+  <% if (typeof description !== 'undefined' && description) { %>
+    <p><%= description %></p>
+  <% } %>
+  <% const hasAction = typeof actionHref !== 'undefined' && typeof actionLabel !== 'undefined' && actionHref && actionLabel; %>
+  <% if (hasAction) { %>
+    <a href="<%= actionHref %>" class="primary-button"><%= actionLabel %></a>
+  <% } %>
+</section>

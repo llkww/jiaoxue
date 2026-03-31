@@ -1,0 +1,20 @@
+<%- include('../../partials/admin/editor-shell', {
+  eyebrow: mode === 'edit' ? '开课安排' : '新增开课',
+  title: mode === 'edit' ? `编辑 ${section?.section_code || ''}` : '新增开课',
+  description: mode === 'edit' ? '成绩占比调整后将自动重算本开课成绩。' : '开课编号保存后自动生成。',
+  formAction: mode === 'edit' ? `/admin/sections/${section?.id}` : '/admin/sections',
+  method: mode === 'edit' ? 'PUT' : 'POST',
+  submitLabel: mode === 'edit' ? '保存更新' : '创建开课',
+  backHref,
+  formPartial: 'forms/section-fields',
+  formData: { section: section || {}, courses, teachers, terms, classrooms, timeSlots, mode },
+  sideCard: {
+    label: '排课校验',
+    value: '自动检查冲突',
+    description: '系统会检查教师与教室在同一学期同一时间段的占用冲突。',
+    items: [
+      { label: '成绩占比', value: '合计必须为 100%' },
+      { label: '维护位置', value: '开课管理' }
+    ]
+  }
+}) %>

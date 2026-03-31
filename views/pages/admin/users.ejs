@@ -1,0 +1,70 @@
+<section class="panel">
+  <div class="section-head">
+    <div>
+      <h3 class="section-title">账号管理</h3>
+    </div>
+  </div>
+
+  <form class="filter-shell mb-4" method="get">
+    <input class="form-control" name="keyword" placeholder="搜索账号、姓名或编号" value="<%= filters.keyword %>" />
+    <select class="form-select" name="role">
+      <option value="">全部角色</option>
+      <option value="student" <%= filters.role === 'student' ? 'selected' : '' %>>学生</option>
+      <option value="teacher" <%= filters.role === 'teacher' ? 'selected' : '' %>>教师</option>
+      <option value="admin" <%= filters.role === 'admin' ? 'selected' : '' %>>管理员</option>
+    </select>
+    <select class="form-select" name="status">
+      <option value="">全部状态</option>
+      <option value="启用" <%= filters.status === '启用' ? 'selected' : '' %>>启用</option>
+      <option value="停用" <%= filters.status === '停用' ? 'selected' : '' %>>停用</option>
+    </select>
+    <button class="primary-button" type="submit">筛选账号</button>
+  </form>
+
+  <div class="table-scroll table-scroll-module">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>账号</th>
+          <th>角色</th>
+          <th>身份编号</th>
+          <th>联系方式</th>
+          <th>状态</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% users.forEach(function(item) { %>
+          <tr>
+            <td>
+              <strong><%= item.full_name %></strong>
+              <div class="muted-copy"><%= item.username %></div>
+            </td>
+            <td><span class="role-pill is-neutral"><%= roleLabel(item.role) %></span></td>
+            <td><%= item.student_no || item.teacher_no || item.admin_no || '--' %></td>
+            <td>
+              <div><%= item.email || '--' %></div>
+              <div class="muted-copy"><%= item.phone || '--' %></div>
+            </td>
+            <td><span class="status-pill <%= badgeClass(item.status) %>"><%= item.status %></span></td>
+            <td class="table-actions">
+              <form action="/admin/users/<%= item.id %>/status" method="post" data-confirm="确认切换该账号状态？">
+                <input type="hidden" name="status" value="<%= item.status === '启用' ? '停用' : '启用' %>" />
+                <input type="hidden" name="return_to" value="<%= returnTo %>" />
+                <button type="submit" class="ghost-button"><%= item.status === '启用' ? '停用' : '启用' %></button>
+              </form>
+              <form action="/admin/users/<%= item.id %>/reset-password" method="post" data-confirm="确认将密码重置为该角色默认密码？">
+                <input type="hidden" name="return_to" value="<%= returnTo %>" />
+                <button type="submit" class="ghost-button">重置密码</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="mt-4">
+    <%- include('../../partials/pagination', { pagination: pagination }) %>
+  </div>
+</section>

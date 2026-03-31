@@ -1,0 +1,80 @@
+<% const item = student || {}; %>
+<% const isEdit = mode === 'edit'; %>
+
+<div class="row g-3 w-100">
+  <% if (isEdit) { %>
+    <div class="col-md-6">
+      <label class="field-label">登录账号</label>
+      <input class="form-control" value="<%= item.username || '' %>" readonly />
+    </div>
+    <div class="col-md-6">
+      <label class="field-label">姓名</label>
+      <input class="form-control" value="<%= item.full_name || '' %>" readonly />
+    </div>
+    <div class="col-md-6">
+      <label class="field-label">学号</label>
+      <input class="form-control" value="<%= item.student_no || '' %>" readonly />
+    </div>
+    <div class="col-md-6">
+      <label class="field-label">班内序号</label>
+      <input class="form-control" value="<%= item.class_serial || '' %>" readonly />
+    </div>
+    <div class="col-md-6">
+      <label class="field-label">所属班级</label>
+      <select class="form-select" name="class_id" data-search-placeholder="搜索班级" required>
+        <% classes.forEach(function(classItem) { %>
+          <option value="<%= classItem.id %>" <%= String(item.class_id || '') === String(classItem.id) ? 'selected' : '' %>>
+            <%= classItem.department_name %> / <%= classItem.major_name %> / <%= classItem.class_name %>
+          </option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="col-md-6">
+      <label class="field-label">入学年份</label>
+      <input class="form-control" value="<%= item.entry_year || '' %>" readonly />
+    </div>
+    <div class="col-md-6">
+      <label class="field-label">性别</label>
+      <input class="form-control" value="<%= item.gender || '--' %>" readonly />
+    </div>
+    <div class="col-md-6">
+      <label class="field-label">邮箱</label>
+      <input class="form-control" value="<%= item.email || '--' %>" readonly />
+    </div>
+    <div class="col-md-6">
+      <label class="field-label">手机号</label>
+      <input class="form-control" value="<%= item.phone || '--' %>" readonly />
+    </div>
+    <div class="col-md-6">
+      <label class="field-label">出生日期</label>
+      <input class="form-control" value="<%= item.birth_date || '--' %>" readonly />
+    </div>
+    <div class="col-12">
+      <label class="field-label">联系地址</label>
+      <textarea class="form-control" rows="3" readonly><%= item.address || '--' %></textarea>
+    </div>
+  <% } else { %>
+    <div class="col-md-6">
+      <label class="field-label">登录账号</label>
+      <input class="form-control" name="username" value="<%= item.username || '' %>" autocomplete="username" required />
+    </div>
+    <div class="col-md-6">
+      <label class="field-label">姓名</label>
+      <input class="form-control" name="full_name" value="<%= item.full_name || '' %>" autocomplete="name" required />
+    </div>
+    <div class="col-12">
+      <label class="field-label">所属班级</label>
+      <select class="form-select" name="class_id" data-search-placeholder="搜索班级" required>
+        <option value="">请选择班级</option>
+        <% classes.forEach(function(classItem) { %>
+          <option value="<%= classItem.id %>" <%= String(item.class_id || '') === String(classItem.id) ? 'selected' : '' %>>
+            <%= classItem.department_name %> / <%= classItem.major_name %> / <%= classItem.class_name %>
+          </option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="col-12">
+      <div class="muted-copy">学号、班内序号和入学年份会根据所选班级自动生成；学生私有信息由学生端自行维护。</div>
+    </div>
+  <% } %>
+</div>

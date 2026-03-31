@@ -1,0 +1,95 @@
+<section class="page-grid">
+  <div class="panel workspace-panel">
+    <div class="section-head">
+      <div>
+        <h3 class="section-title">开课管理</h3>
+      </div>
+      <div class="section-actions">
+        <a href="/admin/sections/new?return_to=<%= encodeURIComponent(returnTo) %>" class="primary-button" data-admin-modal>新增开课</a>
+      </div>
+    </div>
+
+    <form class="filter-shell mb-4" method="get">
+      <input class="form-control" name="keyword" placeholder="搜索课程名称或开课编号" value="<%= filters.keyword %>" />
+      <select class="form-select" name="term_id">
+        <option value="">全部学期</option>
+        <% terms.forEach(function(item) { %>
+          <option value="<%= item.id %>" <%= String(filters.term_id) === String(item.id) ? 'selected' : '' %>><%= item.name %></option>
+        <% }) %>
+      </select>
+      <select class="form-select" name="course_type">
+        <option value="">全部课程性质</option>
+        <option value="必修" <%= filters.course_type === '必修' ? 'selected' : '' %>>必修</option>
+        <option value="选修" <%= filters.course_type === '选修' ? 'selected' : '' %>>选修</option>
+      </select>
+      <select class="form-select" name="status">
+        <option value="">全部状态</option>
+        <option value="开放选课" <%= filters.status === '开放选课' ? 'selected' : '' %>>开放选课</option>
+        <option value="暂停选课" <%= filters.status === '暂停选课' ? 'selected' : '' %>>暂停选课</option>
+        <option value="已归档" <%= filters.status === '已归档' ? 'selected' : '' %>>已归档</option>
+      </select>
+      <button class="primary-button" type="submit">筛选开课</button>
+    </form>
+
+    <% if (sections.length) { %>
+      <div class="table-scroll table-scroll-module">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>课程名称</th>
+              <th>课程号</th>
+              <th>开课编号</th>
+              <th>教师</th>
+              <th>学期</th>
+              <th>上课时间</th>
+              <th>教室</th>
+              <th>课程性质</th>
+              <th>选课状态</th>
+              <th>选课人数</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% sections.forEach(function(item) { const archived = item.selection_status === '已归档'; %>
+              <tr>
+                <td><strong><%= item.course_name %></strong></td>
+                <td><%= item.course_code %></td>
+                <td><%= item.section_code %></td>
+                <td><%= item.teacher_name %></td>
+                <td><%= item.term_name %></td>
+                <td><%= item.label %></td>
+                <td><%= item.building_name %> <%= item.room_number %></td>
+                <td><span class="status-pill <%= badgeClass(item.course_type) %>"><%= item.course_type %></span></td>
+                <td><span class="status-pill <%= badgeClass(item.selection_status) %>"><%= item.selection_status %></span></td>
+                <td><%= item.selected_count %> / <%= item.capacity %></td>
+                <td class="table-actions">
+                  <% if (archived) { %>
+                    <span class="ghost-button is-disabled" aria-disabled="true">已归档不可编辑</span>
+                  <% } else { %>
+                    <a href="/admin/sections/<%= item.id %>/edit?return_to=<%= encodeURIComponent(returnTo) %>" class="ghost-button" data-admin-modal>编辑</a>
+                  <% } %>
+                  <form action="/admin/sections/<%= item.id %>" method="post" data-confirm="确认删除这条开课记录？">
+                    <input type="hidden" name="_method" value="DELETE" />
+                    <input type="hidden" name="return_to" value="<%= returnTo %>" />
+                    <button type="submit" class="ghost-button" <%= archived ? 'disabled' : '' %>>删除</button>
+                  </form>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+      <div class="mt-4">
+        <%- include('../../partials/pagination', { pagination: pagination }) %>
+      </div>
+    <% } else { %>
+      <%- include('../../partials/empty-state', {
+        title: '没有找到符合条件的开课记录',
+        icon: 'solar:course-up-linear'
+      }) %>
+      <div class="mt-3">
+        <a href="/admin/sections/new?return_to=<%= encodeURIComponent(returnTo) %>" class="primary-button" data-admin-modal>新增开课</a>
+      </div>
+    <% } %>
+  </div>
+</section>

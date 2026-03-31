@@ -1,0 +1,27 @@
+<% const item = major || {}; %>
+<div class="row g-3 w-100">
+  <div class="col-md-4">
+    <label class="field-label">所属院系</label>
+    <select class="form-select" name="department_id" required>
+      <% departments.forEach(function(department) { %>
+        <option value="<%= department.id %>" <%= String(item.department_id || '') === String(department.id) ? 'selected' : '' %>><%= department.department_no %> · <%= department.name %></option>
+      <% }) %>
+    </select>
+  </div>
+  <div class="col-md-4">
+    <label class="field-label">专业号</label>
+    <input class="form-control" name="major_code" value="<%= item.major_code || '' %>" maxlength="2" required />
+  </div>
+  <div class="col-md-4">
+    <label class="field-label">专业代码</label>
+    <input class="form-control" name="code" value="<%= item.code || '' %>" required />
+  </div>
+  <div class="col-12">
+    <label class="field-label">专业名称</label>
+    <input class="form-control" name="name" value="<%= item.name || '' %>" required />
+  </div>
+  <div class="col-12">
+    <label class="field-label">说明</label>
+    <textarea class="form-control" rows="4" name="description"><%= item.description || '' %></textarea>
+  </div>
+</div>

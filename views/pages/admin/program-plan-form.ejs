@@ -1,0 +1,20 @@
+<%- include('../../partials/admin/editor-shell', {
+  eyebrow: mode === 'edit' ? '培养方案' : '新增培养方案',
+  title: mode === 'edit' ? `编辑 ${plan?.plan_name || ''}` : '新增培养方案',
+  description: mode === 'edit' ? '调整专业培养方案名称，课程与学分会自动同步。' : '为专业创建新的培养方案。',
+  formAction: mode === 'edit' ? `/admin/program-plans/${plan?.id}` : '/admin/program-plans',
+  method: mode === 'edit' ? 'PUT' : 'POST',
+  submitLabel: mode === 'edit' ? '保存培养方案' : '创建培养方案',
+  backHref,
+  formPartial: 'forms/program-plan-fields',
+  formData: { plan: plan || {}, majors },
+  sideCard: {
+    label: '方案提示',
+    value: mode === 'edit' ? '维护培养方案结构' : '先建方案，再配模块',
+    description: mode === 'edit' ? '保存后可继续维护模块与课程映射。' : '建议先确认适用专业，再配置模块。',
+    items: [
+      { label: '方案状态', value: '默认启用' },
+      { label: '适用层级', value: '专业' }
+    ]
+  }
+}) %>

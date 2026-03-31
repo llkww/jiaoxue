@@ -1,0 +1,57 @@
+<section class="page-grid">
+  <div class="panel workspace-panel">
+    <div class="section-head">
+      <div>
+        <h3 class="section-title">评价反馈</h3>
+      </div>
+    </div>
+
+    <form class="filter-shell mb-4" method="get">
+      <input class="form-control" name="keyword" placeholder="搜索课程名、学生姓名或开课编号" value="<%= filters.keyword %>" />
+      <select class="form-select" name="section_id">
+        <option value="">全部教学任务</option>
+        <% sectionOptions.forEach(function(item) { %>
+          <option value="<%= item.id %>" <%= String(filters.section_id) === String(item.id) ? 'selected' : '' %>><%= item.course_name %> · <%= item.section_code %></option>
+        <% }) %>
+      </select>
+      <button class="primary-button" type="submit">筛选评价</button>
+    </form>
+
+    <% if (evaluations.length) { %>
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>课程名</th>
+              <th>开课编号</th>
+              <th>课程性质</th>
+              <th>学生</th>
+              <th>评分</th>
+              <th>评价内容</th>
+              <th>提交时间</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% evaluations.forEach(function(item) { %>
+              <tr class="<%= Number(item.rating) <= 2 ? 'table-row-danger' : '' %>">
+                <td><strong><%= item.course_name %></strong></td>
+                <td><%= item.section_code %></td>
+                <td><span class="status-pill <%= badgeClass(item.course_type) %>"><%= item.course_type %></span></td>
+                <td><%= item.student_name %></td>
+                <td><span class="status-pill <%= Number(item.rating) <= 2 ? 'is-negative' : 'is-positive' %>"><%= item.rating %> 星</span></td>
+                <td><%= item.content %></td>
+                <td><%= dayjs(item.created_at).format('YYYY-MM-DD HH:mm') %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="mt-4">
+        <%- include('../../partials/pagination', { pagination: pagination }) %>
+      </div>
+    <% } else { %>
+      <%- include('../../partials/empty-state', { title: '暂无匹配教学评价', icon: 'solar:chat-square-like-linear' }) %>
+    <% } %>
+  </div>
+</section>

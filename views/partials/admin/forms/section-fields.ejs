@@ -1,0 +1,99 @@
+<% const item = section || {}; %>
+<% const isEdit = mode === 'edit'; %>
+
+<div class="row g-3 w-100">
+  <% if (isEdit) { %>
+    <div class="col-md-6">
+      <label class="field-label">开课编号</label>
+      <input class="form-control" value="<%= item.section_code || '' %>" readonly />
+    </div>
+  <% } else { %>
+    <div class="col-12">
+      <div class="muted-copy">开课编号将在保存后根据学期和课程自动生成且自动去重。</div>
+    </div>
+  <% } %>
+
+  <div class="col-md-6">
+    <label class="field-label">课程</label>
+    <select class="form-select" name="course_id" data-search-placeholder="搜索课程" required>
+      <option value="">请选择课程</option>
+      <% courses.forEach(function(courseItem) { %>
+        <option value="<%= courseItem.id %>" <%= String(item.course_id || '') === String(courseItem.id) ? 'selected' : '' %>>
+          <%= courseItem.course_code %> / <%= courseItem.course_name %> / <%= courseItem.course_type || '必修' %>
+        </option>
+      <% }) %>
+    </select>
+  </div>
+  <div class="col-md-6">
+    <label class="field-label">教师</label>
+    <select class="form-select" name="teacher_id" data-search-placeholder="搜索教师" required>
+      <option value="">请选择教师</option>
+      <% teachers.forEach(function(teacherItem) { %>
+        <option value="<%= teacherItem.id %>" <%= String(item.teacher_id || '') === String(teacherItem.id) ? 'selected' : '' %>>
+          <%= teacherItem.teacher_no %> / <%= teacherItem.full_name %>
+        </option>
+      <% }) %>
+    </select>
+  </div>
+  <div class="col-md-6">
+    <label class="field-label">学期</label>
+    <select class="form-select" name="term_id" data-search-placeholder="搜索学期" required>
+      <option value="">请选择学期</option>
+      <% terms.forEach(function(termItem) { %>
+        <option value="<%= termItem.id %>" <%= String(item.term_id || '') === String(termItem.id) ? 'selected' : '' %>>
+          <%= termItem.name %>
+        </option>
+      <% }) %>
+    </select>
+  </div>
+  <div class="col-md-6">
+    <label class="field-label">教室</label>
+    <select class="form-select" name="classroom_id" data-search-placeholder="搜索教室" required>
+      <option value="">请选择教室</option>
+      <% classrooms.forEach(function(classroomItem) { %>
+        <option value="<%= classroomItem.id %>" <%= String(item.classroom_id || '') === String(classroomItem.id) ? 'selected' : '' %>>
+          <%= classroomItem.building_name %> <%= classroomItem.room_number %>
+        </option>
+      <% }) %>
+    </select>
+  </div>
+  <div class="col-md-6">
+    <label class="field-label">上课时间</label>
+    <select class="form-select" name="time_slot_id" data-search-placeholder="搜索时间段" required>
+      <option value="">请选择时间段</option>
+      <% timeSlots.forEach(function(timeSlot) { %>
+        <option value="<%= timeSlot.id %>" <%= String(item.time_slot_id || '') === String(timeSlot.id) ? 'selected' : '' %>>
+          <%= timeSlot.label %>
+        </option>
+      <% }) %>
+    </select>
+  </div>
+  <div class="col-md-4">
+    <label class="field-label">容量</label>
+    <input class="form-control" type="number" min="1" name="capacity" value="<%= item.capacity || 40 %>" required />
+  </div>
+  <div class="col-md-4">
+    <label class="field-label">平时占比</label>
+    <input class="form-control" type="number" min="0" max="100" name="usual_weight" value="<%= item.usual_weight || 40 %>" required />
+  </div>
+  <div class="col-md-4">
+    <label class="field-label">期末占比</label>
+    <input class="form-control" type="number" min="0" max="100" name="final_weight" value="<%= item.final_weight || 60 %>" required />
+  </div>
+  <div class="col-md-6">
+    <label class="field-label">周次说明</label>
+    <input class="form-control" name="weeks_text" value="<%= item.weeks_text || '1-16周' %>" />
+  </div>
+  <div class="col-md-6">
+    <label class="field-label">选课状态</label>
+    <select class="form-select" name="selection_status">
+      <% ['开放选课', '暂停选课', '已归档'].forEach(function(status) { %>
+        <option value="<%= status %>" <%= (item.selection_status || '开放选课') === status ? 'selected' : '' %>><%= status %></option>
+      <% }) %>
+    </select>
+  </div>
+  <div class="col-12">
+    <label class="field-label">备注</label>
+    <textarea class="form-control" rows="3" name="notes"><%= item.notes || '' %></textarea>
+  </div>
+</div>

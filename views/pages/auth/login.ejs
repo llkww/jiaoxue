@@ -1,0 +1,78 @@
+<section class="login-page-shell">
+  <div class="login-page-stack">
+    <div class="login-meta" aria-label="当前学期与日期">
+      <span class="login-term-pill"><%= currentTerm ? currentTerm.name : '未设置当前学期' %></span>
+      <span class="login-date"><%= dayjs().format('YYYY.MM.DD') %></span>
+    </div>
+
+    <div class="login-card-frame">
+      <div class="login-card-surface">
+        <header class="login-card-header">
+          <p class="login-theme">教学管理系统</p>
+          <h1 class="login-title">登录</h1>
+        </header>
+
+        <div class="login-role-switch" data-auth-switch data-target-input="login-role">
+          <% (loginRoles || []).forEach(function(role) { %>
+            <button
+              type="button"
+              class="login-role-chip <%= loginMode === role.value ? 'is-active' : '' %>"
+              data-role-value="<%= role.value %>"
+              aria-label="<%= role.label %>"
+            >
+              <span class="login-role-main">
+                <span class="login-role-icon">
+                  <iconify-icon icon="<%= role.icon %>"></iconify-icon>
+                </span>
+                <strong class="login-role-text"><%= role.label %></strong>
+              </span>
+              <small class="login-role-order"><%= role.order %></small>
+            </button>
+          <% }) %>
+        </div>
+
+        <% if (typeof loginError !== 'undefined' && loginError) { %>
+          <div class="login-alert" role="alert">
+            <div class="login-alert-icon">
+              <iconify-icon icon="solar:danger-circle-linear"></iconify-icon>
+            </div>
+            <p><%= loginError %></p>
+          </div>
+        <% } %>
+
+        <form action="/auth/login" method="post" class="login-form" data-loading-form>
+          <input type="hidden" id="login-role" name="login_role" value="<%= loginForm?.login_role || loginMode %>" />
+
+          <label class="login-field" for="login-username">
+            <span class="login-label">账号</span>
+            <input
+              id="login-username"
+              name="username"
+              type="text"
+              class="login-input"
+              value="<%= loginForm?.username || '' %>"
+              placeholder="输入账号"
+              autocomplete="username"
+              required
+            />
+          </label>
+
+          <label class="login-field" for="login-password">
+            <span class="login-label">密码</span>
+            <input
+              id="login-password"
+              name="password"
+              type="password"
+              class="login-input"
+              placeholder="输入密码"
+              autocomplete="current-password"
+              required
+            />
+          </label>
+
+          <button type="submit" class="primary-button login-submit" data-success-state="登录完成">登录</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>

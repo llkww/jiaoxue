@@ -1,0 +1,46 @@
+<% const item = term || {}; %>
+<div class="row g-3 w-100">
+  <div class="col-md-6">
+    <label class="field-label">学期名称</label>
+    <input class="form-control" name="name" value="<%= item.name || '' %>" required />
+  </div>
+  <div class="col-md-6">
+    <label class="field-label">学年</label>
+    <input class="form-control" name="academic_year" value="<%= item.academic_year || '' %>" required />
+  </div>
+  <div class="col-md-6">
+    <label class="field-label">学期标签</label>
+    <input class="form-control" name="semester_label" value="<%= item.semester_label || '' %>" required />
+  </div>
+  <div class="col-md-6">
+    <label class="field-label">状态</label>
+    <select class="form-select" name="status">
+      <% ['规划中', '进行中', '已归档'].forEach(function(status) { %>
+        <option value="<%= status %>" <%= item.status === status ? 'selected' : '' %>><%= status %></option>
+      <% }) %>
+    </select>
+  </div>
+  <div class="col-md-6">
+    <label class="field-label">开始日期</label>
+    <input class="form-control" type="date" name="start_date" value="<%= item.start_date || '' %>" required />
+  </div>
+  <div class="col-md-6">
+    <label class="field-label">结束日期</label>
+    <input class="form-control" type="date" name="end_date" value="<%= item.end_date || '' %>" required />
+  </div>
+  <div class="col-md-6">
+    <label class="field-label">选课开始</label>
+    <input class="form-control" type="date" name="selection_start" value="<%= item.selection_start || '' %>" required />
+  </div>
+  <div class="col-md-6">
+    <label class="field-label">选课结束</label>
+    <input class="form-control" type="date" name="selection_end" value="<%= item.selection_end || '' %>" required />
+  </div>
+  <div class="col-12">
+    <label class="field-label">是否设为当前学期</label>
+    <select class="form-select" name="is_current">
+      <option value="0" <%= Number(item.is_current || 0) === 0 ? 'selected' : '' %>>否</option>
+      <option value="1" <%= Number(item.is_current || 0) === 1 ? 'selected' : '' %>>是</option>
+    </select>
+  </div>
+</div>

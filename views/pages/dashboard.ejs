@@ -1,0 +1,189 @@
+<section class="page-grid">
+  <% if (currentUser.role === 'student') { %>
+    <div class="panel workspace-panel">
+      <div class="section-head">
+        <div>
+          <h3 class="section-title">本学期学习概览</h3>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <article class="metric">
+          <span class="metric-label">本学期已选课程</span>
+          <div class="metric-value"><%= dashboardData.summary.current_course_count || 0 %></div>
+        </article>
+        <article class="metric">
+          <span class="metric-label">已获学分</span>
+          <div class="metric-value"><%= formatScore(dashboardData.summary.earned_credits) %></div>
+        </article>
+        <article class="metric">
+          <span class="metric-label">平均成绩</span>
+          <div class="metric-value"><%= formatScore(dashboardData.summary.average_score) %></div>
+        </article>
+        <article class="metric">
+          <span class="metric-label">加权 GPA</span>
+          <div class="metric-value"><%= formatGpa(dashboardData.summary.weighted_gpa) %></div>
+        </article>
+      </div>
+    </div>
+
+    <div class="panel workspace-panel">
+      <div class="section-head">
+        <div>
+          <h3 class="section-title">近期课程安排</h3>
+        </div>
+        <a href="/student/schedule" class="text-button">查看课表</a>
+      </div>
+
+      <% if (dashboardData.upcomingCourses?.length) { %>
+        <div class="quick-card-grid-2">
+          <% dashboardData.upcomingCourses.forEach(function(item) { %>
+            <article class="quick-card campus-quick-card">
+              <div class="stack-gap-sm">
+                <div class="stack-inline">
+                  <span class="status-pill <%= badgeClass(item.course_type) %>"><%= item.course_type %></span>
+                  <span class="status-pill is-neutral"><%= formatScore(item.credits) %> 学分</span>
+                </div>
+                <strong><%= item.course_name %></strong>
+                <div class="muted-copy">开课编号：<%= item.section_code %></div>
+                <div class="muted-copy">任课教师：<%= item.teacher_name %></div>
+                <div class="muted-copy">上课时间：<%= item.label %></div>
+                <div class="muted-copy">上课地点：<%= item.building_name %> <%= item.room_number %></div>
+                <div class="muted-copy">周次安排：<%= item.weeks_text %></div>
+              </div>
+            </article>
+          <% }) %>
+        </div>
+      <% } else { %>
+        <%- include('../partials/empty-state', { title: '暂无课程安排', actionHref: '/student/courses', actionLabel: '去选课', icon: 'solar:calendar-linear' }) %>
+      <% } %>
+    </div>
+  <% } else if (currentUser.role === 'teacher') { %>
+    <div class="panel workspace-panel">
+      <div class="section-head">
+        <div>
+          <h3 class="section-title">教学任务总览</h3>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <article class="metric">
+          <span class="metric-label">当前开课数</span>
+          <div class="metric-value"><%= dashboardData.summary.section_count || 0 %></div>
+        </article>
+        <article class="metric">
+          <span class="metric-label">覆盖学生数</span>
+          <div class="metric-value"><%= dashboardData.summary.student_count || 0 %></div>
+        </article>
+        <article class="metric">
+          <span class="metric-label">已发布成绩</span>
+          <div class="metric-value"><%= dashboardData.summary.published_grade_count || 0 %></div>
+        </article>
+        <article class="metric">
+          <span class="metric-label">待处理成绩</span>
+          <div class="metric-value"><%= dashboardData.summary.pending_grade_count || 0 %></div>
+        </article>
+      </div>
+    </div>
+
+    <div class="panel workspace-panel">
+      <div class="section-head">
+        <div>
+          <h3 class="section-title">最近教学任务</h3>
+        </div>
+        <a href="/teacher/sections" class="text-button">进入教学任务</a>
+      </div>
+
+      <% if (dashboardData.recentSections.length) { %>
+        <div class="quick-card-grid-2">
+          <% dashboardData.recentSections.forEach(function(item) { %>
+            <article class="quick-card campus-quick-card">
+              <div class="stack-gap-sm">
+                <div class="stack-inline">
+                  <span class="status-pill <%= badgeClass(item.course_type) %>"><%= item.course_type %></span>
+                  <span class="status-pill is-neutral">已选 <%= item.selected_count %> 人</span>
+                </div>
+                <strong><%= item.course_name %></strong>
+                <div class="muted-copy">开课编号：<%= item.section_code %></div>
+                <div class="muted-copy">上课时间：<%= item.label %></div>
+                <div class="muted-copy">当前状态：待继续录入与发布成绩</div>
+                <a href="/teacher/sections/<%= item.id %>" class="ghost-button mt-2">进入成绩册</a>
+              </div>
+            </article>
+          <% }) %>
+        </div>
+      <% } else { %>
+        <%- include('../partials/empty-state', { title: '当前暂无教学任务', icon: 'solar:case-round-linear' }) %>
+      <% } %>
+    </div>
+  <% } else { %>
+    <div class="panel workspace-panel">
+      <div class="section-head">
+        <div>
+          <h3 class="section-title">教务数据总览</h3>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <article class="metric">
+          <span class="metric-label">账号总数</span>
+          <div class="metric-value"><%= dashboardData.summary.user_count || 0 %></div>
+        </article>
+        <article class="metric">
+          <span class="metric-label">有效课程</span>
+          <div class="metric-value"><%= dashboardData.summary.course_count || 0 %></div>
+        </article>
+        <article class="metric">
+          <span class="metric-label">开放选课</span>
+          <div class="metric-value"><%= dashboardData.summary.open_section_count || 0 %></div>
+        </article>
+        <article class="metric">
+          <span class="metric-label">有效选课</span>
+          <div class="metric-value"><%= dashboardData.summary.active_enrollment_count || 0 %></div>
+        </article>
+      </div>
+    </div>
+
+    <div class="split-grid">
+      <div class="panel">
+        <div class="section-head">
+          <div>
+            <h3 class="section-title">热门开课</h3>
+          </div>
+        </div>
+        <div class="quick-card-list">
+          <% dashboardData.currentLoads.forEach(function(item) { %>
+            <article class="quick-card campus-quick-card">
+              <div class="stack-gap-sm">
+                <div class="stack-inline">
+                  <span class="status-pill <%= badgeClass(item.course_type) %>"><%= item.course_type %></span>
+                  <span class="status-pill is-neutral"><%= item.selected_count %> / <%= item.capacity %></span>
+                </div>
+                <strong><%= item.course_name %></strong>
+                <div class="muted-copy">开课编号：<%= item.section_code %></div>
+              </div>
+            </article>
+          <% }) %>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="section-head">
+          <div>
+            <h3 class="section-title">账号角色分布</h3>
+          </div>
+        </div>
+        <canvas
+          data-chart-config='<%- JSON.stringify({
+            type: "doughnut",
+            data: {
+              labels: dashboardData.chartData.labels.map(roleLabel),
+              datasets: [{ data: dashboardData.chartData.values, backgroundColor: ["#146356", "#9a6537", "#50635b"] }]
+            },
+            options: { plugins: { legend: { position: "bottom" } } }
+          }) %>'
+        ></canvas>
+      </div>
+    </div>
+  <% } %>
+</section>

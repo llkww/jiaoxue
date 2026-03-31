@@ -1,0 +1,78 @@
+<section class="page-grid">
+  <div class="panel workspace-panel">
+    <div class="section-head">
+      <div>
+        <h3 class="section-title">课程目录</h3>
+      </div>
+      <div class="section-actions">
+        <a href="/admin/courses/new?return_to=<%= encodeURIComponent(returnTo) %>" class="primary-button" data-admin-modal>新增课程</a>
+      </div>
+    </div>
+
+    <form class="filter-shell mb-4" method="get">
+      <input class="form-control" name="keyword" placeholder="搜索课程号或课程名称" value="<%= filters.keyword %>" />
+      <select class="form-select" name="department_id">
+        <option value="">全部院系</option>
+        <% departments.forEach(function(item) { %>
+          <option value="<%= item.id %>" <%= String(filters.department_id) === String(item.id) ? 'selected' : '' %>><%= item.name %></option>
+        <% }) %>
+      </select>
+      <select class="form-select" name="course_type">
+        <option value="">全部课程性质</option>
+        <option value="必修" <%= filters.course_type === '必修' ? 'selected' : '' %>>必修</option>
+        <option value="选修" <%= filters.course_type === '选修' ? 'selected' : '' %>>选修</option>
+      </select>
+      <button class="primary-button" type="submit">筛选课程</button>
+    </form>
+
+    <% if (courses.length) { %>
+      <div class="table-scroll table-scroll-module">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>课程名称</th>
+              <th>课程号</th>
+              <th>院系</th>
+              <th>专业</th>
+              <th>课程性质</th>
+              <th>学分</th>
+              <th>学时</th>
+              <th>考核方式</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% courses.forEach(function(item) { %>
+              <tr>
+                <td><strong><%= item.course_name %></strong></td>
+                <td><%= item.course_code %></td>
+                <td><%= item.department_name %></td>
+                <td><%= item.major_name %></td>
+                <td><span class="status-pill <%= badgeClass(item.course_type) %>"><%= item.course_type %></span></td>
+                <td><%= formatScore(item.credits) %></td>
+                <td><%= item.total_hours %></td>
+                <td><%= item.assessment_method %></td>
+                <td class="table-actions">
+                  <a href="/admin/courses/<%= item.id %>/edit?return_to=<%= encodeURIComponent(returnTo) %>" class="ghost-button" data-admin-modal>编辑</a>
+                  <form action="/admin/courses/<%= item.id %>" method="post" data-confirm="确认删除这门课程？">
+                    <input type="hidden" name="_method" value="DELETE" />
+                    <input type="hidden" name="return_to" value="<%= returnTo %>" />
+                    <button type="submit" class="ghost-button">删除</button>
+                  </form>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+      <div class="mt-4">
+        <%- include('../../partials/pagination', { pagination: pagination }) %>
+      </div>
+    <% } else { %>
+      <%- include('../../partials/empty-state', { title: '没有找到符合条件的课程', icon: 'solar:library-linear' }) %>
+      <div class="mt-3">
+        <a href="/admin/courses/new?return_to=<%= encodeURIComponent(returnTo) %>" class="primary-button" data-admin-modal>新增课程</a>
+      </div>
+    <% } %>
+  </div>
+</section>
