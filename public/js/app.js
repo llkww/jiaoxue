@@ -1378,51 +1378,45 @@ function renderProgramMap(graphElement) {
   svg.setAttribute('height', String(height));
 
   const containerRect = graphElement.getBoundingClientRect();
+  const branches = Array.from(graphElement.querySelectorAll('[data-map-branch]'));
 
-  ['left', 'right'].forEach((side) => {
-    const branches = Array.from(graphElement.querySelectorAll(`[data-map-branch][data-map-side="${side}"]`));
+  if (!branches.length) {
+    return;
+  }
 
-    if (!branches.length) {
-      return;
-    }
+  const semesterBundles = branches
+    .map((branch) => {
+      const semesterNode = branch.querySelector('[data-map-semester-node]');
 
-    const semesterBundles = branches
-      .map((branch) => {
-        const semesterNode = branch.querySelector('[data-map-semester-node]');
+      if (!(semesterNode instanceof HTMLElement)) {
+        return null;
+      }
 
-        if (!(semesterNode instanceof HTMLElement)) {
-          return null;
-        }
+      const modulePoints = Array.from(branch.querySelectorAll('[data-map-module-node]'))
+        .filter((node) => node instanceof HTMLElement)
+        .map((node) => getProgramMapAnchor(node, 'right', containerRect));
 
-        const incomingSide = side === 'left' ? 'right' : 'left';
-        const outgoingSide = side === 'left' ? 'left' : 'right';
-        const modulePoints = Array.from(branch.querySelectorAll('[data-map-module-node]'))
-          .filter((node) => node instanceof HTMLElement)
-          .map((node) => getProgramMapAnchor(node, outgoingSide, containerRect));
+      return {
+        incoming: getProgramMapAnchor(semesterNode, 'right', containerRect),
+        outgoing: getProgramMapAnchor(semesterNode, 'left', containerRect),
+        modulePoints
+      };
+    })
+    .filter(Boolean);
 
-        return {
-          incoming: getProgramMapAnchor(semesterNode, incomingSide, containerRect),
-          outgoing: getProgramMapAnchor(semesterNode, outgoingSide, containerRect),
-          modulePoints
-        };
-      })
-      .filter(Boolean);
+  if (!semesterBundles.length) {
+    return;
+  }
 
-    if (!semesterBundles.length) {
-      return;
-    }
+  drawProgramMapBundle(
+    svg,
+    getProgramMapAnchor(rootNode, 'left', containerRect),
+    semesterBundles.map((bundle) => bundle.incoming),
+    'left'
+  );
 
-    const rootAnchor = getProgramMapAnchor(rootNode, side === 'left' ? 'left' : 'right', containerRect);
-    drawProgramMapBundle(
-      svg,
-      rootAnchor,
-      semesterBundles.map((bundle) => bundle.incoming),
-      side
-    );
-
-    semesterBundles.forEach((bundle) => {
-      drawProgramMapBundle(svg, bundle.outgoing, bundle.modulePoints, side);
-    });
+  semesterBundles.forEach((bundle) => {
+    drawProgramMapBundle(svg, bundle.outgoing, bundle.modulePoints, 'left');
   });
 }
 
