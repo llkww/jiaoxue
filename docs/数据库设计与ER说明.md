@@ -1,18 +1,6 @@
 # 数据库设计与 ER 说明
 
-## 1. 文档范围与依据
 
-本文档严格基于当前仓库中的实际实现编写，主要依据以下文件：
-
-- `sql/schema.sql`
-- `sql/database.sql`
-- `scripts/init-db.js`
-- `scripts/seed-db.js`
-- `routes/*.js`
-- `services/*.js`
-- `utils/*.js`
-
-因此，本文档描述的是“当前代码已经落地的数据库设计”，而不是抽象的理想设计。
 
 ## 2. 当前数据库初始化方式
 
@@ -38,9 +26,6 @@ npm run init-db
 - 编号、开课、成绩、培养方案、评价等需要程序化生成
 - 可以保证示例数据始终与最新 schema 保持同步
 
-### 2.3 运行时附加表
-
-项目使用 `express-mysql-session` 保存 Session。运行时中间件可能会自动创建会话表，例如 `sessions`。该表不属于 `schema.sql` 中定义的核心业务表，因此本文档重点说明业务数据库，不将 Session 存储表纳入核心 ER 范围。
 
 ## 3. 数据库设计目标
 
@@ -107,49 +92,366 @@ npm run init-db
 
 课程既保存所属院系，也保存所属专业。这样前端可以直接按院系、专业过滤课程，同时又通过组合外键确保 `major_id` 与 `department_id` 一致，不会出现“课程属于错误院系”的脏数据。
 
-## 5. ER 关系总览
+### 4.6 实体集、属性、主码整理结果
 
-下面的 ER 图展示的是核心业务关系，不包含所有索引与全部约束细节：
+说明：
 
-```mermaid
-erDiagram
-  TERMS ||--o{ STUDENTS : "admission_term_id"
-  DEPARTMENTS ||--o{ MAJORS : "department_id"
-  MAJORS ||--o{ CLASSES : "major_id"
-  MAJORS ||--o| TRAINING_PLANS : "major_id"
-  TRAINING_PLANS ||--o{ TRAINING_PLAN_MODULES : "training_plan_id"
-  TRAINING_PLAN_MODULES ||--o{ TRAINING_PLAN_COURSES : "module_id"
-  COURSES ||--o{ TRAINING_PLAN_COURSES : "course_id"
+- 下表用于满足课程作业里“先整理实体、属性、主码，再绘图”的要求。
+- 为了控制篇幅，“属性”列只写 ER 提炼时最重要的业务属性；每张表的所有属性完整解释见第 7 节。
+- 审计字段 `created_at`、`updated_at` 在 ER 图中视为普通属性，但在整理表中不重复展开。
 
-  USERS ||--o| STUDENTS : "user_id"
-  USERS ||--o| TEACHERS : "user_id"
-  USERS ||--o| ADMINS : "user_id"
+| 实体集（英文） | 主码 | 关键属性 | 备注 |
+|---|---|---|---|
+| `terms` | `id` | `name`, `academic_year`, `semester_label`, `start_date`, `end_date`, `selection_start`, `selection_end`, `is_current`, `status` | 学期实体 |
+| `departments` | `id` | `department_no`, `code`, `name`, `description` | 院系实体 |
+| `majors` | `id` | `department_id`, `major_code`, `code`, `name`, `description` | 专业实体 |
+| `classes` | `id` | `major_id`, `class_code`, `class_name`, `grade_year`, `counselor_name` | 班级实体 |
+| `users` | `id` | `username`, `password_hash`, `role`, `full_name`, `email`, `phone`, `status`, `avatar_color`, `last_login_at` | 统一账号实体 |
+| `students` | `id` | `user_id`, `student_no`, `class_id`, `class_serial`, `entry_year`, `admission_term_id`, `gender`, `birth_date`, `address`, `credits_required` | 学生扩展实体 |
+| `teachers` | `id` | `user_id`, `teacher_no`, `department_id`, `gender`, `title`, `office_location`, `specialty_text` | 教师扩展实体 |
+| `admins` | `id` | `user_id`, `admin_no`, `position` | 管理员扩展实体 |
+| `classrooms` | `id` | `building_name`, `room_number`, `capacity`, `room_type` | 教室资源实体 |
+| `time_slots` | `id` | `weekday`, `start_period`, `end_period`, `start_time`, `end_time`, `label` | 时间段资源实体 |
+| `courses` | `id` | `department_id`, `major_id`, `course_code`, `course_name`, `course_type`, `credits`, `total_hours`, `assessment_method`, `description` | 课程目录实体 |
+| `training_plans` | `id` | `major_id`, `plan_name`, `total_credits` | 培养方案实体 |
+| `training_plan_modules` | `id` | `training_plan_id`, `semester_no`, `module_name`, `module_type`, `required_credits` | 培养方案模块实体 |
+| `training_plan_courses` | `id` | `training_plan_id`, `module_id`, `course_id`, `recommended_semester` | 培养方案课程映射实体 |
+| `announcements` | `id` | `title`, `content`, `category`, `target_role`, `target_student_id`, `priority`, `published_by`, `published_at` | 公告实体 |
+| `course_sections` | `id` | `course_id`, `teacher_id`, `term_id`, `classroom_id`, `time_slot_id`, `section_code`, `weeks_text`, `capacity`, `selection_status`, `usual_weight`, `final_weight`, `notes` | 开课实例实体 |
+| `enrollments` | `id` | `section_id`, `student_id`, `status`, `selected_at`, `dropped_at` | 选课关联实体 |
+| `grades` | `id` | `enrollment_id`, `usual_score`, `final_exam_score`, `total_score`, `grade_point`, `letter_grade`, `status`, `teacher_comment` | 成绩依赖实体 |
+| `teaching_evaluations` | `id` | `enrollment_id`, `section_id`, `student_id`, `teacher_id`, `rating`, `content` | 教学评价依赖实体 |
+| `academic_warnings` | `id` | `student_id`, `term_id`, `issued_by`, `announcement_id`, `required_failed_count`, `content` | 学业预警实体 |
 
-  CLASSES ||--o{ STUDENTS : "class_id"
-  DEPARTMENTS ||--o{ TEACHERS : "department_id"
-  DEPARTMENTS ||--o{ COURSES : "department_id"
-  MAJORS ||--o{ COURSES : "major_id"
+### 4.7 联系集、基数约束、参与约束整理结果
 
-  COURSES ||--o{ COURSE_SECTIONS : "course_id"
-  TEACHERS ||--o{ COURSE_SECTIONS : "teacher_id"
-  TERMS ||--o{ COURSE_SECTIONS : "term_id"
-  CLASSROOMS ||--o{ COURSE_SECTIONS : "classroom_id"
-  TIME_SLOTS ||--o{ COURSE_SECTIONS : "time_slot_id"
+说明：
 
-  STUDENTS ||--o{ ENROLLMENTS : "student_id"
-  COURSE_SECTIONS ||--o{ ENROLLMENTS : "section_id"
-  ENROLLMENTS ||--|| GRADES : "enrollment_id"
-  ENROLLMENTS ||--o| TEACHING_EVALUATIONS : "enrollment_id"
+- 这里统一用 `l..h` 表示参与范围，其中最小值体现“全参与 / 部分参与”，最大值体现“1 / 多”。
+- 一些联系在关系数据库中已经实体化为“关联表”，例如 `enrollments`、`training_plan_courses`。
 
-  STUDENTS ||--o{ ACADEMIC_WARNINGS : "student_id"
-  TERMS ||--o{ ACADEMIC_WARNINGS : "term_id"
-  ADMINS ||--o{ ACADEMIC_WARNINGS : "issued_by"
+| 联系集（英文） | 左实体 | 右实体 | 左参与 | 右参与 | 联系属性 / 实体化结果 |
+|---|---|---|---|---|---|
+| `belongs_to_department` | `departments` | `majors` | `0..*` | `1..1` | 无 |
+| `belongs_to_major` | `majors` | `classes` | `0..*` | `1..1` | 无 |
+| `owns_student_profile` | `users` | `students` | `0..1` | `1..1` | 无 |
+| `owns_teacher_profile` | `users` | `teachers` | `0..1` | `1..1` | 无 |
+| `owns_admin_profile` | `users` | `admins` | `0..1` | `1..1` | 无 |
+| `assigned_to_class` | `classes` | `students` | `0..*` | `1..1` | 无 |
+| `admitted_in_term` | `terms` | `students` | `0..*` | `0..1` | 无 |
+| `works_in_department` | `departments` | `teachers` | `0..*` | `1..1` | 无 |
+| `owned_by_department` | `departments` | `courses` | `0..*` | `1..1` | 无 |
+| `owned_by_major` | `majors` | `courses` | `0..*` | `1..1` | 无 |
+| `has_plan` | `majors` | `training_plans` | `0..1` | `1..1` | 无 |
+| `has_module` | `training_plans` | `training_plan_modules` | `0..*` | `1..1` | 无 |
+| `contains_plan_course` | `training_plans` | `training_plan_courses` | `0..*` | `1..1` | `recommended_semester` |
+| `belongs_to_module` | `training_plan_modules` | `training_plan_courses` | `0..*` | `1..1` | `recommended_semester` |
+| `maps_course` | `courses` | `training_plan_courses` | `0..*` | `1..1` | `recommended_semester` |
+| `opens` | `courses` | `course_sections` | `0..*` | `1..1` | 开课属性落在 `course_sections` |
+| `teaches` | `teachers` | `course_sections` | `0..*` | `1..1` | 同上 |
+| `runs_in_term` | `terms` | `course_sections` | `0..*` | `1..1` | 同上 |
+| `uses_room` | `classrooms` | `course_sections` | `0..*` | `1..1` | 同上 |
+| `uses_slot` | `time_slots` | `course_sections` | `0..*` | `1..1` | 同上 |
+| `enrolls_in` | `students` | `enrollments` | `0..*` | `1..1` | `status`, `selected_at`, `dropped_at` |
+| `for_section` | `course_sections` | `enrollments` | `0..*` | `1..1` | `status`, `selected_at`, `dropped_at` |
+| `has_grade` | `enrollments` | `grades` | `0..1` | `1..1` | `usual_score`, `final_exam_score`, `total_score`, `grade_point`, `letter_grade`, `status`, `teacher_comment` |
+| `has_evaluation` | `enrollments` | `teaching_evaluations` | `0..1` | `1..1` | `rating`, `content` |
+| `evaluates_section` | `course_sections` | `teaching_evaluations` | `0..*` | `1..1` | `rating`, `content` |
+| `evaluates_teacher` | `teachers` | `teaching_evaluations` | `0..*` | `1..1` | `rating`, `content` |
+| `published_by_user` | `users` | `announcements` | `0..*` | `0..1` | 无 |
+| `targets_student` | `students` | `announcements` | `0..*` | `0..1` | 无 |
+| `warns_student` | `students` | `academic_warnings` | `0..*` | `1..1` | `required_failed_count`, `content` |
+| `warns_in_term` | `terms` | `academic_warnings` | `0..*` | `1..1` | `required_failed_count`, `content` |
+| `issued_by_admin` | `admins` | `academic_warnings` | `0..*` | `1..1` | `required_failed_count`, `content` |
+| `backed_by_announcement` | `announcements` | `academic_warnings` | `0..*` | `0..1` | `required_failed_count`, `content` |
 
-  USERS ||--o{ ANNOUNCEMENTS : "published_by"
-  STUDENTS ||--o{ ANNOUNCEMENTS : "target_student_id"
-  ANNOUNCEMENTS ||--o{ ACADEMIC_WARNINGS : "announcement_id"
+### 4.8 角色名与弱实体识别
+
+- 当前项目没有递归联系，因此不存在需要在同一联系中区分两个角色名的自反关系。
+- 严格按教材定义，当前数据库没有“必须依赖强实体主码作为自身主码组成部分”的双线弱实体，因为所有表都有独立的自增主键 `id`。
+- 但从业务依赖角度看，`grades` 与 `teaching_evaluations` 都依赖 `enrollments` 才有意义，因此可在答辩时说明：
+  - 概念上它们接近弱实体；
+  - 物理实现上为了简化程序处理与主键引用，仍采用独立主码 + 唯一外键的设计。
+
+## 5. ER 图说明
+
+### 5.5 ER图解释
+
+#### 5.5.1 `Identity Domain`
+
+该页覆盖基础身份与组织结构，核心实体包括：`departments`、`majors`、`classes`、`users`、`students`、`teachers`、`admins`、`terms`。
+
+这一页主要回答三个问题：
+
+- 院系、专业、班级如何层层归属。
+- 统一账号 `users` 如何分别扩展为学生、教师、管理员三类角色档案。
+- 学生如何关联入学学期 `terms`。
+
+其概念层可以概括为：
+
+- `departments` 与 `majors` 是一对多。
+- `majors` 与 `classes` 是一对多。
+- `users` 与 `students / teachers / admins` 是一对一可选扩展。
+- `terms` 与 `students` 通过入学学期形成一对多。
+
+这与代码实现完全一致：
+
+- `majors.department_id`
+- `classes.major_id`
+- `students.user_id`
+- `teachers.user_id`
+- `admins.user_id`
+- `students.admission_term_id`
+
+对应的典型 SQL / 查询逻辑包括：
+
+```sql
+SELECT s.*, u.full_name, c.class_name, m.name AS major_name, d.name AS department_name
+FROM students s
+JOIN users u ON u.id = s.user_id
+JOIN classes c ON c.id = s.class_id
+JOIN majors m ON m.id = c.major_id
+JOIN departments d ON d.id = m.department_id
+WHERE s.id = ?;
 ```
 
+```sql
+SELECT t.*, u.full_name, d.name AS department_name
+FROM teachers t
+JOIN users u ON u.id = t.user_id
+JOIN departments d ON d.id = t.department_id
+ORDER BY t.teacher_no;
+```
+
+答辩时可以强调：这里并没有把所有角色字段都堆到 `users` 表，而是采用“统一账号 + 角色扩展子表”的设计，避免学生、教师、管理员字段互相污染。
+
+#### 5.5.2 `Teaching Core`
+
+该页覆盖教学运行主链路，实体包括：`courses`、`course_sections`、`teachers`、`terms`、`classrooms`、`time_slots`。
+
+这一页说明的是：课程目录如何在某学期、某教师、某教室、某时间段下形成可选的开课实例。
+
+概念层关系是：
+
+- `courses` 与 `course_sections` 一对多。
+- `teachers` 与 `course_sections` 一对多。
+- `terms` 与 `course_sections` 一对多。
+- `classrooms` 与 `course_sections` 一对多。
+- `time_slots` 与 `course_sections` 一对多。
+
+对应的物理字段为：
+
+- `course_sections.course_id`
+- `course_sections.teacher_id`
+- `course_sections.term_id`
+- `course_sections.classroom_id`
+- `course_sections.time_slot_id`
+
+典型 SQL 如下：
+
+```sql
+SELECT cs.*, c.course_name, c.course_code, t.teacher_no, u.full_name AS teacher_name,
+       tr.name AS term_name, r.building_name, r.room_number, ts.label AS time_label
+FROM course_sections cs
+JOIN courses c ON c.id = cs.course_id
+JOIN teachers t ON t.id = cs.teacher_id
+JOIN users u ON u.id = t.user_id
+JOIN terms tr ON tr.id = cs.term_id
+JOIN classrooms r ON r.id = cs.classroom_id
+JOIN time_slots ts ON ts.id = cs.time_slot_id
+WHERE cs.term_id = ?
+ORDER BY c.course_code, cs.section_code;
+```
+
+对应的业务约束则落在表结构和服务逻辑中，例如：
+
+- `capacity > 0`
+- `usual_weight + final_weight = 100`
+- 教师端只能录入自己开设的 `course_sections`
+- 学生选课页只展示当前学期 `is_current = 1` 且 `selection_status = 'open'` 的开课实例
+
+这部分也是学生选课、教师成绩录入、管理员排课管理的共同基础。
+
+#### 5.5.3 `Enrollment and Grade`
+
+该页覆盖学生选课与成绩闭环，实体包括：`students`、`course_sections`、`enrollments`、`grades`。
+
+答辩时可以按“学生先选课，再生成成绩”来讲：
+
+1. 学生在当前学期浏览开放的 `course_sections`。
+2. 选择某开课后，系统向 `enrollments` 插入一条记录。
+3. 任课教师对该选课记录录入平时成绩和期末成绩。
+4. 系统在 `grades` 中保存总评、绩点、等级和发布状态。
+
+概念层中，`students` 与 `course_sections` 的多对多联系，被实体化成了 `enrollments`；而 `grades` 则依赖于 `enrollments`。
+
+对应 SQL 如下：
+
+```sql
+INSERT INTO enrollments (section_id, student_id, status, selected_at)
+VALUES (?, ?, 'selected', NOW());
+```
+
+```sql
+SELECT COUNT(*) AS enrolled_count
+FROM enrollments
+WHERE section_id = ? AND status = 'selected';
+```
+
+```sql
+INSERT INTO grades (
+  enrollment_id, usual_score, final_exam_score, total_score,
+  grade_point, letter_grade, status, teacher_comment
+) VALUES (?, ?, ?, ?, ?, ?, 'draft', ?)
+ON DUPLICATE KEY UPDATE
+  usual_score = VALUES(usual_score),
+  final_exam_score = VALUES(final_exam_score),
+  total_score = VALUES(total_score),
+  grade_point = VALUES(grade_point),
+  letter_grade = VALUES(letter_grade),
+  teacher_comment = VALUES(teacher_comment),
+  status = VALUES(status);
+```
+
+这一页最适合强调的特殊业务规定有：
+
+- 同一学生对同一开课只能有一条有效选课记录。
+- 退课并不是直接删除 `enrollments`，而是通过 `status` 和 `dropped_at` 记录业务状态，保留审计痕迹。
+- 成绩不是直接挂在 `students` 或 `course_sections` 上，而是必须依附具体的选课记录 `enrollment_id`，这样才能避免“未选课先有成绩”的脏数据。
+
+#### 5.5.4 `Teaching Evaluation`
+
+该页覆盖教学评价，实体包括：`enrollments`、`teaching_evaluations`、`course_sections`、`students`、`teachers`。
+
+这里的关键点不是简单地“学生给教师打分”，而是评价必须建立在真实选课事实之上，因此主依赖链是：
+
+- `enrollments -> teaching_evaluations`
+
+同时，为了查询方便和约束上下文，`teaching_evaluations` 又冗余保存：
+
+- `section_id`
+- `student_id`
+- `teacher_id`
+
+典型 SQL：
+
+```sql
+INSERT INTO teaching_evaluations (
+  enrollment_id, section_id, student_id, teacher_id, rating, content
+) VALUES (?, ?, ?, ?, ?, ?);
+```
+
+```sql
+SELECT te.rating, te.content, te.created_at,
+       c.course_name, u.full_name AS teacher_name
+FROM teaching_evaluations te
+JOIN course_sections cs ON cs.id = te.section_id
+JOIN courses c ON c.id = cs.course_id
+JOIN teachers t ON t.id = te.teacher_id
+JOIN users u ON u.id = t.user_id
+WHERE te.student_id = ?;
+```
+
+这部分可作为答辩亮点说明：评价之所以不直接建成 `students` 和 `teachers` 的普通多对多，是因为评价必须限定在某次真实授课和真实选课场景里，不能脱离 `enrollments` 独立存在。
+
+#### 5.5.5 `Training Plan`
+
+该页覆盖培养方案链路，实体包括：`majors`、`training_plans`、`training_plan_modules`、`training_plan_courses`、`courses`。
+
+这部分要说明的是：某专业拥有自己的培养方案，培养方案再按学期或模块组织课程，最终映射到课程目录。
+
+对应关系：
+
+- `majors` 与 `training_plans` 接近一对一。
+- `training_plans` 与 `training_plan_modules` 一对多。
+- `training_plan_modules` 与 `courses` 的联系通过 `training_plan_courses` 实体化。
+
+典型 SQL：
+
+```sql
+SELECT tp.plan_name, tpm.semester_no, tpm.module_name,
+       c.course_code, c.course_name, tpc.recommended_semester
+FROM training_plans tp
+JOIN training_plan_modules tpm ON tpm.training_plan_id = tp.id
+JOIN training_plan_courses tpc ON tpc.module_id = tpm.id
+JOIN courses c ON c.id = tpc.course_id
+WHERE tp.major_id = ?
+ORDER BY tpm.semester_no, tpc.recommended_semester, c.course_code;
+```
+
+这一页适合说明的业务规定是：
+
+- 培养方案不是简单的课程列表，而是分模块、分推荐学期组织。
+- `training_plan_courses` 虽然物理上是一张独立表，但概念上对应的是“培养方案模块包含课程”的带属性联系，因为它额外保存了 `recommended_semester`。
+- 学生端查看培养方案时，实际上就是沿着 `students -> classes -> majors -> training_plans` 这一链路向后查询。
+
+#### 5.5.6 `Announcement and Warning`
+
+该页覆盖公告与学业预警，实体包括：`announcements`、`academic_warnings`、`students`、`admins`、`terms`、`users`。
+
+这一页解释两个业务事实：
+
+- 公告可以面向全体角色，也可以定向到某个学生。
+- 学业预警是管理员在某学期对某学生发出的正式业务记录，且可以选择挂靠到一条公告。
+
+典型 SQL：
+
+```sql
+INSERT INTO announcements (
+  title, content, category, target_role, target_student_id,
+  priority, published_by, published_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, NOW());
+```
+
+```sql
+INSERT INTO academic_warnings (
+  student_id, term_id, issued_by, announcement_id,
+  required_failed_count, content
+) VALUES (?, ?, ?, ?, ?, ?);
+```
+
+```sql
+SELECT aw.*, s.student_no, u.full_name AS student_name,
+       tr.name AS term_name, a.title AS announcement_title
+FROM academic_warnings aw
+JOIN students s ON s.id = aw.student_id
+JOIN users u ON u.id = s.user_id
+JOIN terms tr ON tr.id = aw.term_id
+LEFT JOIN announcements a ON a.id = aw.announcement_id
+WHERE aw.student_id = ?;
+```
+
+这里可以强调：`academic_warnings` 并不是公告表中的一个状态字段，而是独立业务实体。因为预警需要单独记录发出人、学期、触发阈值、正文、可选公告挂靠关系，这些都不适合简单塞进 `announcements`。
+
+### 5.6 关于属性化联系、弱实体与角色名的最终说明
+
+- `enrollments`、`training_plan_courses`、`academic_warnings` 在物理库中都是独立表，但在 ER 概念层中分别对应“选课联系”“培养方案课程映射联系”“预警联系”的实体化结果。
+- `grades`、`teaching_evaluations` 虽然都拥有独立主键 `id`，不属于教材意义上的严格弱实体，但它们都必须依赖 `enrollments` 才成立，所以答辩时可以说明为“概念上接近弱实体、实现上用独立主键简化程序”。
+- 当前项目没有递归联系，因此最终图中不需要额外标注角色名来区分同一实体在同一联系中的不同扮演身份。
+
+
+### 5.8 ER 图转关系模式说明
+
+从当前 ER 提炼到关系模式时，转换规则如下：
+
+- 强实体直接转换为对应关系表，如 `terms`、`departments`、`courses`、`course_sections`。
+- 角色扩展实体采用“一对一子表”方式落库，即 `users` 与 `students/teachers/admins` 分表。
+- 带属性联系被实体化为关联表：
+  - `students` 与 `course_sections` 的选课联系转成 `enrollments`
+  - `training_plans` / `training_plan_modules` / `courses` 的课程归属联系转成 `training_plan_courses`
+  - `students` / `terms` / `admins` / `announcements` 的预警联系转成 `academic_warnings`
+- 依赖型联系结果采用独立关系表保存：
+  - `grades` 依赖 `enrollments`
+  - `teaching_evaluations` 依赖 `enrollments`，同时保留 `section_id`、`student_id`、`teacher_id` 作为上下文冗余，便于查询与约束
+
+常见的关系模式转换结果可简述为：
+
+- `majors(department_id FK)`、`classes(major_id FK)`、`students(user_id FK, class_id FK, admission_term_id FK)`
+- `teachers(user_id FK, department_id FK)`、`admins(user_id FK)`
+- `courses(department_id FK, major_id FK)`、`course_sections(course_id FK, teacher_id FK, term_id FK, classroom_id FK, time_slot_id FK)`
+- `enrollments(section_id FK, student_id FK)`、`grades(enrollment_id FK UNIQUE)`、`teaching_evaluations(enrollment_id FK UNIQUE, section_id FK, student_id FK, teacher_id FK)`
+- `training_plans(major_id FK UNIQUE)`、`training_plan_modules(training_plan_id FK)`、`training_plan_courses(training_plan_id FK, module_id FK, course_id FK)`
+- `announcements(published_by FK NULL, target_student_id FK NULL)`、`academic_warnings(student_id FK, term_id FK, issued_by FK, announcement_id FK NULL)`
 ## 6. 业务表总览
 
 | 表名 | 中文名称 | 类型 | 主要职责 |
@@ -1252,37 +1554,3 @@ erDiagram
 
 因此，数据库结构不仅完整，而且已有较真实的数据支撑三端演示。
 
-## 11. 与旧文档最容易不一致的几点
-
-当前代码版本下，下面这些点需要特别注意：
-
-- 核心种子数据不来自 `seed.sql`，而来自 `scripts/seed-db.js`
-- 核心业务表不止传统的 15 张，还包含：
-  - `training_plans`
-  - `training_plan_modules`
-  - `training_plan_courses`
-  - `teaching_evaluations`
-  - `academic_warnings`
-- `courses` 表现在同时保存 `department_id` 和 `major_id`，并有组合外键约束
-- `teaching_evaluations` 表存在严格的复合外键，不是普通“评论表”
-- `academic_warnings.issued_by` 引用的是 `admins.id`，不是 `users.id`
-
-## 12. 结论
-
-当前教学管理系统数据库已经具备比较完整的课程设计级规范性，具体体现在：
-
-- 实体边界清晰
-- 关系表达完整
-- 主外键与索引设计明确
-- 对关键业务规则提供数据库级保护
-- 默认避免级联删除带来的数据破坏
-- 能支撑三端共享统一数据源
-- 能支撑培养方案、成绩、评价、预警等扩展业务
-
-如果后续继续扩展，建议在当前结构上优先增强：
-
-- 审计日志表
-- 更细粒度的课程先修关系表
-- 培养方案版本表
-- 教学班/行政班拆分
-- 更完整的会话和操作留痕策略
