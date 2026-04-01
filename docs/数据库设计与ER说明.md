@@ -2,9 +2,9 @@
 
 
 
-## 2. 当前数据库初始化方式
+## 1. 当前数据库初始化方式
 
-### 2.1 初始化入口
+### 1.1 初始化入口
 
 项目通过以下命令初始化数据库：
 
@@ -18,7 +18,7 @@ npm run init-db
 2. 读取 `sql/schema.sql` 创建全部业务表、主键、外键、索引、检查约束
 3. 调用 `scripts/seed-db.js` 生成并写入演示数据
 
-### 2.2 关于 `seed.sql`
+### 1.2 关于 `seed.sql`
 
 `sql/seed.sql` 当前不是实际数据导入入口，它只保留说明性注释。真正的种子数据来自 `scripts/seed-db.js`。这样做的原因是：
 
@@ -27,7 +27,7 @@ npm run init-db
 - 可以保证示例数据始终与最新 schema 保持同步
 
 
-## 3. 数据库设计目标
+## 2. 数据库设计目标
 
 本系统数据库设计重点解决以下问题：
 
@@ -39,9 +39,9 @@ npm run init-db
 - 禁止把业务删除动作设计成危险的级联删除
 - 对关键业务规则增加数据库层保护
 
-## 4. 总体建模原则
+## 3. 总体建模原则
 
-### 4.1 主键策略
+### 3.1 主键策略
 
 所有核心表统一使用：
 
@@ -53,7 +53,7 @@ npm run init-db
 - 联表成本低
 - 与 Node.js/MySQL 驱动交互直接
 
-### 4.2 外键策略
+### 3.2 外键策略
 
 系统对关键业务关系全部使用显式外键。设计原则是：
 
@@ -61,7 +61,7 @@ npm run init-db
 - 仅对“弱引用展示字段”使用 `SET NULL`
 - 不用数据库级联删除去代替业务层逻辑
 
-### 4.3 唯一约束策略
+### 3.3 唯一约束策略
 
 凡是业务上“只能出现一次”的关系，都设计唯一约束。例如：
 
@@ -73,7 +73,7 @@ npm run init-db
 - 同一选课记录只能有一条成绩记录
 - 同一培养方案中同一课程不能重复出现
 
-### 4.4 检查约束策略
+### 3.4 检查约束策略
 
 当前 schema 中大量使用了 `CHECK` 约束，例如：
 
@@ -83,7 +83,7 @@ npm run init-db
 - 绩点必须在 0 到 4
 - 开课成绩权重之和必须等于 100
 
-### 4.5 编码冗余但受约束一致
+### 3.5 编码冗余但受约束一致
 
 有些字段是“为了查询方便而保留冗余”，但通过约束保证一致。例如：
 
@@ -92,12 +92,12 @@ npm run init-db
 
 课程既保存所属院系，也保存所属专业。这样前端可以直接按院系、专业过滤课程，同时又通过组合外键确保 `major_id` 与 `department_id` 一致，不会出现“课程属于错误院系”的脏数据。
 
-### 4.6 实体集、属性、主码整理结果
+### 3.6 实体集、属性、主码整理结果
 
 说明：
 
 - 下表用于满足课程作业里“先整理实体、属性、主码，再绘图”的要求。
-- 为了控制篇幅，“属性”列只写 ER 提炼时最重要的业务属性；每张表的所有属性完整解释见第 7 节。
+- 为了控制篇幅，“属性”列只写 ER 提炼时最重要的业务属性；每张表的所有属性完整解释见第 6 节。
 - 审计字段 `created_at`、`updated_at` 在 ER 图中视为普通属性，但在整理表中不重复展开。
 
 | 实体集（英文） | 主码 | 关键属性 | 备注 |
@@ -123,7 +123,7 @@ npm run init-db
 | `teaching_evaluations` | `id` | `enrollment_id`, `section_id`, `student_id`, `teacher_id`, `rating`, `content` | 教学评价依赖实体 |
 | `academic_warnings` | `id` | `student_id`, `term_id`, `issued_by`, `announcement_id`, `required_failed_count`, `content` | 学业预警实体 |
 
-### 4.7 联系集、基数约束、参与约束整理结果
+### 3.7 联系集、基数约束、参与约束整理结果
 
 说明：
 
@@ -165,7 +165,7 @@ npm run init-db
 | `issued_by_admin` | `admins` | `academic_warnings` | `0..*` | `1..1` | `required_failed_count`, `content` |
 | `backed_by_announcement` | `announcements` | `academic_warnings` | `0..*` | `0..1` | `required_failed_count`, `content` |
 
-### 4.8 角色名与弱实体识别
+### 3.8 角色名与弱实体识别
 
 - 当前项目没有递归联系，因此不存在需要在同一联系中区分两个角色名的自反关系。
 - 严格按教材定义，当前数据库没有“必须依赖强实体主码作为自身主码组成部分”的双线弱实体，因为所有表都有独立的自增主键 `id`。
@@ -173,11 +173,15 @@ npm run init-db
   - 概念上它们接近弱实体；
   - 物理实现上为了简化程序处理与主键引用，仍采用独立主码 + 唯一外键的设计。
 
-## 5. ER 图说明
+## 4. ER 图说明
 
-### 5.5 ER图解释
+### 4.1 ER 图解释
 
-#### 5.5.1 `Identity Domain`
+最终 ER 图没有把全部实体和联系压缩到同一张图里，而是按 6 个业务闭环拆成 6 张分图。这 6 张图共同组成完整的项目 ER 表达：它们共享同一套实体、同一套联系和同一套数据库约束，只是分别突出不同业务域，便于按“身份体系 -> 教学运行 -> 学习过程 -> 管理业务”的顺序讲解。下面对每张图的覆盖范围、阅读顺序和设计意图分别说明。
+
+#### 4.1.1 基础身份与组织结构图
+
+这张图对应系统最底层的组织与身份模型，重点回答“系统里有哪些人、这些人从哪里来、分别隶属于什么组织单元”。阅读时建议按照 `departments -> majors -> classes -> students` 和 `users -> students/teachers/admins` 两条主线来看：前一条是组织归属链，后一条是统一账号向三类角色档案展开的身份链。也就是说，这张图是后续所有业务图的基础，因为没有统一账号、院系、专业、班级这些基础实体，后面的选课、开课、评价和预警都无从谈起。
 
 该页覆盖基础身份与组织结构，核心实体包括：`departments`、`majors`、`classes`、`users`、`students`、`teachers`、`admins`、`terms`。
 
@@ -225,7 +229,9 @@ ORDER BY t.teacher_no;
 
 答辩时可以强调：这里并没有把所有角色字段都堆到 `users` 表，而是采用“统一账号 + 角色扩展子表”的设计，避免学生、教师、管理员字段互相污染。
 
-#### 5.5.2 `Teaching Core`
+#### 4.1.2 教学运行核心图
+
+这张图描述的是“课程如何变成某学期真正可以上的课”。答辩时应强调这里故意把 `courses` 与 `course_sections` 分开：`courses` 是课程目录，定义课程本身；`course_sections` 是开课实例，表示某位教师在某个学期、某间教室、某个时间段真正开出了一门课。图中的 `teachers`、`terms`、`classrooms`、`time_slots` 都围绕 `course_sections` 展开，说明一门课只有在教学资源被分配之后，才会进入学生可选、教师可管的业务状态。
 
 该页覆盖教学运行主链路，实体包括：`courses`、`course_sections`、`teachers`、`terms`、`classrooms`、`time_slots`。
 
@@ -272,7 +278,9 @@ ORDER BY c.course_code, cs.section_code;
 
 这部分也是学生选课、教师成绩录入、管理员排课管理的共同基础。
 
-#### 5.5.3 `Enrollment and Grade`
+#### 4.1.3 选课与成绩闭环图
+
+这张图展示的是学生学习过程里最核心的一条数据链：从选课到成绩产生。阅读时建议先看 `students` 和 `course_sections`，再看它们之间被实体化的联系 `enrollments`，最后看依附在选课记录上的 `grades`。这样拆开后可以清楚看出：成绩不是直接挂在学生身上，也不是直接挂在课程目录上，而是严格依赖某一次具体选课。因此这张图最能体现本系统“先有真实选课，再有成绩记录”的数据一致性设计。
 
 该页覆盖学生选课与成绩闭环，实体包括：`students`、`course_sections`、`enrollments`、`grades`。
 
@@ -319,7 +327,9 @@ ON DUPLICATE KEY UPDATE
 - 退课并不是直接删除 `enrollments`，而是通过 `status` 和 `dropped_at` 记录业务状态，保留审计痕迹。
 - 成绩不是直接挂在 `students` 或 `course_sections` 上，而是必须依附具体的选课记录 `enrollment_id`，这样才能避免“未选课先有成绩”的脏数据。
 
-#### 5.5.4 `Teaching Evaluation`
+#### 4.1.4 教学评价业务图
+
+这张图用于解释为什么教学评价不是一个简单的“学生给教师打分”关系，而是必须建立在真实授课场景之上。图中把 `teaching_evaluations` 放在中心，是为了突出它同时依赖 `enrollments`、`course_sections`、`students`、`teachers` 四类上下文信息。也就是说，评价行为必须对应“某个学生在某次真实选课和真实授课中的反馈”，这样既保证评价对象明确，也保证后续查询能准确回溯到课程、教师和选课记录。
 
 该页覆盖教学评价，实体包括：`enrollments`、`teaching_evaluations`、`course_sections`、`students`、`teachers`。
 
@@ -354,7 +364,9 @@ WHERE te.student_id = ?;
 
 这部分可作为答辩亮点说明：评价之所以不直接建成 `students` 和 `teachers` 的普通多对多，是因为评价必须限定在某次真实授课和真实选课场景里，不能脱离 `enrollments` 独立存在。
 
-#### 5.5.5 `Training Plan`
+#### 4.1.5 培养方案结构图
+
+这张图展示的是专业培养方案如何组织课程。它不是单纯的课程清单，而是按照 `major -> training_plan -> training_plan_modules -> training_plan_courses -> courses` 的层级结构展开。答辩时可以强调：图中的 `training_plan_courses` 虽然在物理实现中是一张独立表，但在概念层上表示的是“培养方案模块包含课程”的带属性联系，因为它额外记录了推荐学期。把这一层单独拆出来后，老师能更直观看到培养方案如何从专业层一直落到具体课程层。
 
 该页覆盖培养方案链路，实体包括：`majors`、`training_plans`、`training_plan_modules`、`training_plan_courses`、`courses`。
 
@@ -385,7 +397,9 @@ ORDER BY tpm.semester_no, tpc.recommended_semester, c.course_code;
 - `training_plan_courses` 虽然物理上是一张独立表，但概念上对应的是“培养方案模块包含课程”的带属性联系，因为它额外保存了 `recommended_semester`。
 - 学生端查看培养方案时，实际上就是沿着 `students -> classes -> majors -> training_plans` 这一链路向后查询。
 
-#### 5.5.6 `Announcement and Warning`
+#### 4.1.6 公告与学业预警图
+
+这张图覆盖的是后台管理业务中的消息发布与学业干预逻辑。图里同时保留 `announcements` 和 `academic_warnings`，目的是说明二者有关联但并不等价：公告面向消息传达，预警面向业务处置。`academic_warnings` 还会关联 `students`、`admins`、`terms`，说明一条预警必须明确到“谁在什么学期、由哪位管理员发出、是否关联某条公告”。这也是为什么预警不能简单做成公告表里的一个状态字段。
 
 该页覆盖公告与学业预警，实体包括：`announcements`、`academic_warnings`、`students`、`admins`、`terms`、`users`。
 
@@ -423,14 +437,14 @@ WHERE aw.student_id = ?;
 
 这里可以强调：`academic_warnings` 并不是公告表中的一个状态字段，而是独立业务实体。因为预警需要单独记录发出人、学期、触发阈值、正文、可选公告挂靠关系，这些都不适合简单塞进 `announcements`。
 
-### 5.6 关于属性化联系、弱实体与角色名的最终说明
+### 4.2 关于属性化联系、弱实体与角色名的最终说明
 
 - `enrollments`、`training_plan_courses`、`academic_warnings` 在物理库中都是独立表，但在 ER 概念层中分别对应“选课联系”“培养方案课程映射联系”“预警联系”的实体化结果。
 - `grades`、`teaching_evaluations` 虽然都拥有独立主键 `id`，不属于教材意义上的严格弱实体，但它们都必须依赖 `enrollments` 才成立，所以答辩时可以说明为“概念上接近弱实体、实现上用独立主键简化程序”。
 - 当前项目没有递归联系，因此最终图中不需要额外标注角色名来区分同一实体在同一联系中的不同扮演身份。
 
 
-### 5.8 ER 图转关系模式说明
+### 4.3 ER 图转关系模式说明
 
 从当前 ER 提炼到关系模式时，转换规则如下：
 
@@ -452,7 +466,7 @@ WHERE aw.student_id = ?;
 - `enrollments(section_id FK, student_id FK)`、`grades(enrollment_id FK UNIQUE)`、`teaching_evaluations(enrollment_id FK UNIQUE, section_id FK, student_id FK, teacher_id FK)`
 - `training_plans(major_id FK UNIQUE)`、`training_plan_modules(training_plan_id FK)`、`training_plan_courses(training_plan_id FK, module_id FK, course_id FK)`
 - `announcements(published_by FK NULL, target_student_id FK NULL)`、`academic_warnings(student_id FK, term_id FK, issued_by FK, announcement_id FK NULL)`
-## 6. 业务表总览
+## 5. 业务表总览
 
 | 表名 | 中文名称 | 类型 | 主要职责 |
 |---|---|---|---|
@@ -477,7 +491,7 @@ WHERE aw.student_id = ?;
 | `teaching_evaluations` | 教学评价表 | 教学业务数据 | 记录学生对课程/教师的评价 |
 | `academic_warnings` | 学业预警表 | 管理业务数据 | 记录管理员发出的学业预警 |
 
-## 7. 各表详细说明
+## 6. 各表详细说明
 
 下文中每张表都按以下维度说明：
 
@@ -490,9 +504,9 @@ WHERE aw.student_id = ?;
 
 ---
 
-## 7.1 `terms`
+### 6.1 `terms`
 
-### 7.1.1 表定位
+#### 6.1.1 表定位
 
 `terms` 表用于维护学期，是很多业务判断的基准表。它不仅表示“学年学期名称”，还承载：
 
@@ -503,13 +517,13 @@ WHERE aw.student_id = ?;
 
 学生端、教师端、管理员端的大量页面都会读取当前学期。
 
-### 7.1.2 关系说明
+#### 6.1.2 关系说明
 
 - 被 `students.admission_term_id` 引用
 - 被 `course_sections.term_id` 引用
 - 被 `academic_warnings.term_id` 引用
 
-### 7.1.3 字段说明
+#### 6.1.3 字段说明
 
 | 字段 | 类型 | 可空 | 默认值 | 键/约束 | 详细说明 |
 |---|---|---|---|---|---|
@@ -526,7 +540,7 @@ WHERE aw.student_id = ?;
 | `created_at` | `DATETIME` | 否 | `CURRENT_TIMESTAMP` | 无 | 学期记录创建时间。 |
 | `updated_at` | `DATETIME` | 否 | `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP` | 无 | 学期记录最后更新时间。 |
 
-### 7.1.4 索引与约束
+#### 6.1.4 索引与约束
 
 - `PRIMARY KEY (id)`
 - `UNIQUE (name)`：完整名称不可重复
@@ -539,7 +553,7 @@ WHERE aw.student_id = ?;
 - `selection_start <= selection_end`
 - 选课窗口必须与教学周期有交集
 
-### 7.1.5 代码中的主要用途
+#### 6.1.5 代码中的主要用途
 
 - `services/referenceService.js`：`getCurrentTerm()`、`getTerms()`
 - `middlewares/locals.js`：每次请求都尝试注入当前学期
@@ -548,9 +562,9 @@ WHERE aw.student_id = ?;
 
 ---
 
-## 7.2 `departments`
+### 6.2 `departments`
 
-### 7.2.1 表定位
+#### 6.2.1 表定位
 
 `departments` 是院系主数据表，提供院系编码、英文/业务代码、中文名称和描述。其信息会被多个场景使用：
 
@@ -559,13 +573,13 @@ WHERE aw.student_id = ?;
 - 课程归属
 - 学号/工号生成
 
-### 7.2.2 关系说明
+#### 6.2.2 关系说明
 
 - 被 `majors.department_id` 引用
 - 被 `teachers.department_id` 引用
 - 被 `courses.department_id` 引用
 
-### 7.2.3 字段说明
+#### 6.2.3 字段说明
 
 | 字段 | 类型 | 可空 | 默认值 | 键/约束 | 详细说明 |
 |---|---|---|---|---|---|
@@ -577,18 +591,18 @@ WHERE aw.student_id = ?;
 | `created_at` | `DATETIME` | 否 | `CURRENT_TIMESTAMP` | 无 | 创建时间。 |
 | `updated_at` | `DATETIME` | 否 | `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP` | 无 | 更新时间。 |
 
-### 7.2.4 索引与约束
+#### 6.2.4 索引与约束
 
 - `PRIMARY KEY (id)`
 - `UNIQUE (department_no)`
 - `UNIQUE (code)`
 
-### 7.2.5 删除策略
+#### 6.2.5 删除策略
 
 - 被专业、教师、课程引用时不可删除
 - 外键使用 `ON DELETE RESTRICT`
 
-### 7.2.6 代码中的主要用途
+#### 6.2.6 代码中的主要用途
 
 - 基础信息维护
 - 编号生成上下文
@@ -596,20 +610,20 @@ WHERE aw.student_id = ?;
 
 ---
 
-## 7.3 `majors`
+### 6.3 `majors`
 
-### 7.3.1 表定位
+#### 6.3.1 表定位
 
 `majors` 表保存专业主数据，是“院系 -> 专业 -> 班级 -> 学生”的中间层，同时也是培养方案的归属对象。系统当前的培养方案就是按专业维度维护，而不是按班级维护。
 
-### 7.3.2 关系说明
+#### 6.3.2 关系说明
 
 - 从属于 `departments`
 - 被 `classes.major_id` 引用
 - 被 `courses.major_id` 引用
 - 被 `training_plans.major_id` 引用
 
-### 7.3.3 字段说明
+#### 6.3.3 字段说明
 
 | 字段 | 类型 | 可空 | 默认值 | 键/约束 | 详细说明 |
 |---|---|---|---|---|---|
@@ -622,19 +636,19 @@ WHERE aw.student_id = ?;
 | `created_at` | `DATETIME` | 否 | 当前时间 | 无 | 创建时间。 |
 | `updated_at` | `DATETIME` | 否 | 自动更新时间 | 无 | 更新时间。 |
 
-### 7.3.4 索引与约束
+#### 6.3.4 索引与约束
 
 - `UNIQUE uk_majors_department_code (department_id, major_code)`：同院系下专业编号唯一
 - `UNIQUE (code)`：专业代码全局唯一
 - `KEY idx_majors_department_name (department_id, name)`：支持按院系和名称检索
 - `KEY idx_majors_id_department (id, department_id)`：为课程表组合外键提供被引用索引
 
-### 7.3.5 删除策略
+#### 6.3.5 删除策略
 
 - 如果仍有关联班级、课程或培养方案，不能删除
 - 通过业务层先检查，再由外键阻止非法删除
 
-### 7.3.6 代码中的主要用途
+#### 6.3.6 代码中的主要用途
 
 - 基础信息管理中的专业维护
 - 课程归属
@@ -644,18 +658,18 @@ WHERE aw.student_id = ?;
 
 ---
 
-## 7.4 `classes`
+### 6.4 `classes`
 
-### 7.4.1 表定位
+#### 6.4.1 表定位
 
 `classes` 表表示行政班，是学生归属的直接对象。学生不直接挂在专业上，而是先归属到班级，再由班级关联专业。
 
-### 7.4.2 关系说明
+#### 6.4.2 关系说明
 
 - 从属于 `majors`
 - 被 `students.class_id` 引用
 
-### 7.4.3 字段说明
+#### 6.4.3 字段说明
 
 | 字段 | 类型 | 可空 | 默认值 | 键/约束 | 详细说明 |
 |---|---|---|---|---|---|
@@ -668,13 +682,13 @@ WHERE aw.student_id = ?;
 | `created_at` | `DATETIME` | 否 | 当前时间 | 无 | 创建时间。 |
 | `updated_at` | `DATETIME` | 否 | 自动更新时间 | 无 | 更新时间。 |
 
-### 7.4.4 索引与约束
+#### 6.4.4 索引与约束
 
 - `UNIQUE uk_classes_name (major_id, grade_year, class_name)`：同专业同年级下班级名唯一
 - `INDEX idx_classes_grade_code (grade_year, class_code)`：支撑按年级和班号的快速检索；“同年级同学院下班号唯一”由写入逻辑结合 `majors.department_id` 严格校验，避免在 `classes` 表冗余存储学院字段而引入同步异常
 - `KEY idx_classes_major_grade (major_id, grade_year)`：支持按专业和年级查班级
 
-### 7.4.5 代码中的主要用途
+#### 6.4.5 代码中的主要用途
 
 - 学生归属班级
 - 学号生成
@@ -683,20 +697,20 @@ WHERE aw.student_id = ?;
 
 ---
 
-## 7.5 `users`
+### 6.5 `users`
 
-### 7.5.1 表定位
+#### 6.5.1 表定位
 
 `users` 是统一账号表，负责保存所有角色共有的登录与基础资料。系统登录时首先查的就是该表，而不是直接查学生或教师档案表。
 
-### 7.5.2 关系说明
+#### 6.5.2 关系说明
 
 - 与 `students` 一对一
 - 与 `teachers` 一对一
 - 与 `admins` 一对一
 - 被 `announcements.published_by` 引用
 
-### 7.5.3 字段说明
+#### 6.5.3 字段说明
 
 | 字段 | 类型 | 可空 | 默认值 | 键/约束 | 详细说明 |
 |---|---|---|---|---|---|
@@ -713,13 +727,13 @@ WHERE aw.student_id = ?;
 | `created_at` | `DATETIME` | 否 | 当前时间 | 无 | 创建时间。 |
 | `updated_at` | `DATETIME` | 否 | 自动更新时间 | 无 | 更新时间。 |
 
-### 7.5.4 索引与约束
+#### 6.5.4 索引与约束
 
 - `UNIQUE (username)`
 - `KEY idx_users_role_status (role, status)`：账号管理页筛选使用
 - `KEY idx_users_full_name (full_name)`：模糊搜索姓名时受益
 
-### 7.5.5 代码中的主要用途
+#### 6.5.5 代码中的主要用途
 
 - `routes/auth.js`：登录认证
 - `services/userService.js`：会话用户对象组装
@@ -727,13 +741,13 @@ WHERE aw.student_id = ?;
 
 ---
 
-## 7.6 `students`
+### 6.6 `students`
 
-### 7.6.1 表定位
+#### 6.6.1 表定位
 
 `students` 表保存学生身份专有字段。系统把登录数据与学生档案拆开，避免 `users` 表塞入过多角色专属字段。
 
-### 7.6.2 关系说明
+#### 6.6.2 关系说明
 
 - `user_id -> users.id`
 - `class_id -> classes.id`
@@ -743,7 +757,7 @@ WHERE aw.student_id = ?;
 - 被 `teaching_evaluations.student_id` 引用
 - 被 `academic_warnings.student_id` 引用
 
-### 7.6.3 字段说明
+#### 6.6.3 字段说明
 
 | 字段 | 类型 | 可空 | 默认值 | 键/约束 | 详细说明 |
 |---|---|---|---|---|---|
@@ -761,7 +775,7 @@ WHERE aw.student_id = ?;
 | `created_at` | `DATETIME` | 否 | 当前时间 | 无 | 创建时间。 |
 | `updated_at` | `DATETIME` | 否 | 自动更新时间 | 无 | 更新时间。 |
 
-### 7.6.4 索引与约束
+#### 6.6.4 索引与约束
 
 - `UNIQUE (user_id)`
 - `UNIQUE (student_no)`
@@ -769,13 +783,13 @@ WHERE aw.student_id = ?;
 - `KEY idx_students_class_serial (class_id, class_serial)`
 - `KEY idx_students_admission_term (admission_term_id)`
 
-### 7.6.5 删除策略
+#### 6.6.5 删除策略
 
 - 删除学生时，如果有关联选课、评价、公告定向、预警等数据，业务层会先检查
 - `class_id` 与 `user_id` 使用 `RESTRICT`
 - `admission_term_id` 使用 `SET NULL`，因为入学学期属于弱引用展示信息
 
-### 7.6.6 代码中的主要用途
+#### 6.6.6 代码中的主要用途
 
 - 选课与课表
 - 培养方案完成度
@@ -785,20 +799,20 @@ WHERE aw.student_id = ?;
 
 ---
 
-## 7.7 `teachers`
+### 6.7 `teachers`
 
-### 7.7.1 表定位
+#### 6.7.1 表定位
 
 `teachers` 保存教师身份专属字段，用于教师业务、开课归属和评价归属。
 
-### 7.7.2 关系说明
+#### 6.7.2 关系说明
 
 - `user_id -> users.id`
 - `department_id -> departments.id`
 - 被 `course_sections.teacher_id` 引用
 - 被 `teaching_evaluations.teacher_id` 引用
 
-### 7.7.3 字段说明
+#### 6.7.3 字段说明
 
 | 字段 | 类型 | 可空 | 默认值 | 键/约束 | 详细说明 |
 |---|---|---|---|---|---|
@@ -815,13 +829,13 @@ WHERE aw.student_id = ?;
 | `created_at` | `DATETIME` | 否 | 当前时间 | 无 | 创建时间。 |
 | `updated_at` | `DATETIME` | 否 | 自动更新时间 | 无 | 更新时间。 |
 
-### 7.7.4 索引与约束
+#### 6.7.4 索引与约束
 
 - `UNIQUE (user_id)`
 - `UNIQUE (teacher_no)`
 - `KEY idx_teachers_department (department_id)`
 
-### 7.7.5 代码中的主要用途
+#### 6.7.5 代码中的主要用途
 
 - 教师教学任务
 - 开课归属
@@ -831,18 +845,18 @@ WHERE aw.student_id = ?;
 
 ---
 
-## 7.8 `admins`
+### 6.8 `admins`
 
-### 7.8.1 表定位
+#### 6.8.1 表定位
 
 `admins` 是管理员身份扩展表，字段少但很重要，因为学业预警的签发人引用的是 `admins.id`，不是 `users.id`。
 
-### 7.8.2 关系说明
+#### 6.8.2 关系说明
 
 - `user_id -> users.id`
 - 被 `academic_warnings.issued_by` 引用
 
-### 7.8.3 字段说明
+#### 6.8.3 字段说明
 
 | 字段 | 类型 | 可空 | 默认值 | 键/约束 | 详细说明 |
 |---|---|---|---|---|---|
@@ -853,24 +867,24 @@ WHERE aw.student_id = ?;
 | `created_at` | `DATETIME` | 否 | 当前时间 | 无 | 创建时间。 |
 | `updated_at` | `DATETIME` | 否 | 自动更新时间 | 无 | 更新时间。 |
 
-### 7.8.4 代码中的主要用途
+#### 6.8.4 代码中的主要用途
 
 - 管理员顶部身份展示
 - 学业预警签发人归属
 
 ---
 
-## 7.9 `classrooms`
+### 6.9 `classrooms`
 
-### 7.9.1 表定位
+#### 6.9.1 表定位
 
 `classrooms` 是教室资源表，管理端可维护教室，开课时选择教室。系统会通过该表与时间段一起判断占用冲突。
 
-### 7.9.2 关系说明
+#### 6.9.2 关系说明
 
 - 被 `course_sections.classroom_id` 引用
 
-### 7.9.3 字段说明
+#### 6.9.3 字段说明
 
 | 字段 | 类型 | 可空 | 默认值 | 键/约束 | 详细说明 |
 |---|---|---|---|---|---|
@@ -882,11 +896,11 @@ WHERE aw.student_id = ?;
 | `created_at` | `DATETIME` | 否 | 当前时间 | 无 | 创建时间。 |
 | `updated_at` | `DATETIME` | 否 | 自动更新时间 | 无 | 更新时间。 |
 
-### 7.9.4 索引与约束
+#### 6.9.4 索引与约束
 
 - `UNIQUE uk_classrooms_room (building_name, room_number)`：同一楼宇下房间唯一
 
-### 7.9.5 代码中的主要用途
+#### 6.9.5 代码中的主要用途
 
 - 开课排课
 - 课表详情显示
@@ -895,17 +909,17 @@ WHERE aw.student_id = ?;
 
 ---
 
-## 7.10 `time_slots`
+### 6.10 `time_slots`
 
-### 7.10.1 表定位
+#### 6.10.1 表定位
 
 `time_slots` 定义标准上课时间段，和 `course_sections` 共同构成排课维度。系统当前不是把起始时间直接写在开课表里，而是通过时间段表复用标准时间配置。
 
-### 7.10.2 关系说明
+#### 6.10.2 关系说明
 
 - 被 `course_sections.time_slot_id` 引用
 
-### 7.10.3 字段说明
+#### 6.10.3 字段说明
 
 | 字段 | 类型 | 可空 | 默认值 | 键/约束 | 详细说明 |
 |---|---|---|---|---|---|
@@ -920,14 +934,14 @@ WHERE aw.student_id = ?;
 
 注意：`time_slots` 表当前没有 `created_at` 和 `updated_at` 字段，这一点与多数主数据表不同。
 
-### 7.10.4 索引与约束
+#### 6.10.4 索引与约束
 
 - `UNIQUE uk_time_slots (weekday, start_period, end_period)`
 - `CHECK weekday BETWEEN 1 AND 7`
 - `CHECK start_period/end_period BETWEEN 1 AND 12`
 - `CHECK start_period <= end_period`
 
-### 7.10.5 代码中的主要用途
+#### 6.10.5 代码中的主要用途
 
 - 开课冲突检测
 - 学生/教师课表网格构建
@@ -935,13 +949,13 @@ WHERE aw.student_id = ?;
 
 ---
 
-## 7.11 `courses`
+### 6.11 `courses`
 
-### 7.11.1 表定位
+#### 6.11.1 表定位
 
 `courses` 表表示课程目录，是“课程本体”，不是某学期的具体开课。课程表和开课表的分离，是整个数据库设计中非常关键的一点。
 
-### 7.11.2 关系说明
+#### 6.11.2 关系说明
 
 - `department_id -> departments.id`
 - `major_id -> majors.id`
@@ -949,7 +963,7 @@ WHERE aw.student_id = ?;
 - 被 `training_plan_courses.course_id` 引用
 - 被 `course_sections.course_id` 引用
 
-### 7.11.3 字段说明
+#### 6.11.3 字段说明
 
 | 字段 | 类型 | 可空 | 默认值 | 键/约束 | 详细说明 |
 |---|---|---|---|---|---|
@@ -966,7 +980,7 @@ WHERE aw.student_id = ?;
 | `created_at` | `DATETIME` | 否 | 当前时间 | 无 | 创建时间。 |
 | `updated_at` | `DATETIME` | 否 | 自动更新时间 | 无 | 更新时间。 |
 
-### 7.11.4 关键一致性设计
+#### 6.11.4 关键一致性设计
 
 本表最值得注意的地方是冗余字段与组合外键：
 
@@ -980,7 +994,7 @@ WHERE aw.student_id = ?;
 - 前端筛选便利
 - 数据一致性
 
-### 7.11.5 索引与约束
+#### 6.11.5 索引与约束
 
 - `UNIQUE (course_code)`
 - `KEY idx_courses_department_major (department_id, major_id)`
@@ -988,7 +1002,7 @@ WHERE aw.student_id = ?;
 - `KEY idx_courses_type (course_type)`
 - `KEY idx_courses_name (course_name)`
 
-### 7.11.6 代码中的主要用途
+#### 6.11.6 代码中的主要用途
 
 - 课程目录管理
 - 培养方案课程映射
@@ -998,19 +1012,19 @@ WHERE aw.student_id = ?;
 
 ---
 
-## 7.12 `training_plans`
+### 6.12 `training_plans`
 
-### 7.12.1 表定位
+#### 6.12.1 表定位
 
 `training_plans` 是培养方案头表，一个专业最多一条培养方案。当前种子数据中只维护计算机科学与技术专业的一套培养方案，但 schema 已经支持其他专业。
 
-### 7.12.2 关系说明
+#### 6.12.2 关系说明
 
 - `major_id -> majors.id`
 - 被 `training_plan_modules.training_plan_id` 引用
 - 被 `training_plan_courses.training_plan_id` 引用
 
-### 7.12.3 字段说明
+#### 6.12.3 字段说明
 
 | 字段 | 类型 | 可空 | 默认值 | 键/约束 | 详细说明 |
 |---|---|---|---|---|---|
@@ -1021,12 +1035,12 @@ WHERE aw.student_id = ?;
 | `created_at` | `DATETIME` | 否 | 当前时间 | 无 | 创建时间。 |
 | `updated_at` | `DATETIME` | 否 | 自动更新时间 | 无 | 更新时间。 |
 
-### 7.12.4 索引与约束
+#### 6.12.4 索引与约束
 
 - `UNIQUE (major_id)`
 - `CHECK total_credits >= 0`
 
-### 7.12.5 代码中的主要用途
+#### 6.12.5 代码中的主要用途
 
 - 管理端培养方案列表与编辑
 - 学生端培养方案总览
@@ -1034,18 +1048,18 @@ WHERE aw.student_id = ?;
 
 ---
 
-## 7.13 `training_plan_modules`
+### 6.13 `training_plan_modules`
 
-### 7.13.1 表定位
+#### 6.13.1 表定位
 
 `training_plan_modules` 用来描述培养方案的模块化结构。例如“专业核心”“通识基础”“实践拓展”等。
 
-### 7.13.2 关系说明
+#### 6.13.2 关系说明
 
 - `training_plan_id -> training_plans.id`
 - 被 `training_plan_courses` 通过复合关系引用
 
-### 7.13.3 字段说明
+#### 6.13.3 字段说明
 
 | 字段 | 类型 | 可空 | 默认值 | 键/约束 | 详细说明 |
 |---|---|---|---|---|---|
@@ -1058,7 +1072,7 @@ WHERE aw.student_id = ?;
 | `created_at` | `DATETIME` | 否 | 当前时间 | 无 | 创建时间。 |
 | `updated_at` | `DATETIME` | 否 | 自动更新时间 | 无 | 更新时间。 |
 
-### 7.13.4 索引与约束
+#### 6.13.4 索引与约束
 
 - `UNIQUE uk_training_plan_module_name (training_plan_id, semester_no, module_name)`
 - `KEY idx_training_plan_modules_plan_semester (training_plan_id, semester_no, id)`
@@ -1066,26 +1080,26 @@ WHERE aw.student_id = ?;
 
 第二个索引是为了支持 `training_plan_courses` 的复合外键引用。
 
-### 7.13.5 代码中的主要用途
+#### 6.13.5 代码中的主要用途
 
 - 管理端模块新增/编辑/删除
 - 学生端培养方案学期节点与模块展示
 
 ---
 
-## 7.14 `training_plan_courses`
+### 6.14 `training_plan_courses`
 
-### 7.14.1 表定位
+#### 6.14.1 表定位
 
 `training_plan_courses` 是培养方案与课程之间的映射表，同时记录课程属于哪个模块以及推荐修读学期。
 
-### 7.14.2 关系说明
+#### 6.14.2 关系说明
 
 - `training_plan_id -> training_plans.id`
 - `(module_id, training_plan_id) -> training_plan_modules(id, training_plan_id)`
 - `course_id -> courses.id`
 
-### 7.14.3 字段说明
+#### 6.14.3 字段说明
 
 | 字段 | 类型 | 可空 | 默认值 | 键/约束 | 详细说明 |
 |---|---|---|---|---|---|
@@ -1097,7 +1111,7 @@ WHERE aw.student_id = ?;
 | `created_at` | `DATETIME` | 否 | 当前时间 | 无 | 创建时间。 |
 | `updated_at` | `DATETIME` | 否 | 自动更新时间 | 无 | 更新时间。 |
 
-### 7.14.4 唯一约束与含义
+#### 6.14.4 唯一约束与含义
 
 - `UNIQUE uk_training_plan_course (training_plan_id, course_id)`
   - 表示同一个培养方案中，同一课程不能重复出现
@@ -1106,7 +1120,7 @@ WHERE aw.student_id = ?;
 
 这两层约束共同保证培养方案课程映射不会重复。
 
-### 7.14.5 代码中的主要用途
+#### 6.14.5 代码中的主要用途
 
 - 管理端加入课程 / 编辑课程映射
 - 学生端培养方案状态聚合
@@ -1114,19 +1128,19 @@ WHERE aw.student_id = ?;
 
 ---
 
-## 7.15 `announcements`
+### 6.15 `announcements`
 
-### 7.15.1 表定位
+#### 6.15.1 表定位
 
 `announcements` 是公告表，既用于全体公告，也用于特定角色公告和针对单个学生的定向公告。学业预警发送时，还会联动生成面向该学生的公告。
 
-### 7.15.2 关系说明
+#### 6.15.2 关系说明
 
 - `published_by -> users.id`
 - `target_student_id -> students.id`
 - 被 `academic_warnings.announcement_id` 引用
 
-### 7.15.3 字段说明
+#### 6.15.3 字段说明
 
 | 字段 | 类型 | 可空 | 默认值 | 键/约束 | 详细说明 |
 |---|---|---|---|---|---|
@@ -1142,20 +1156,20 @@ WHERE aw.student_id = ?;
 | `created_at` | `DATETIME` | 否 | 当前时间 | 无 | 创建时间。 |
 | `updated_at` | `DATETIME` | 否 | 自动更新时间 | 无 | 更新时间。 |
 
-### 7.15.4 索引与约束
+#### 6.15.4 索引与约束
 
 - `KEY idx_announcements_target (target_role, priority)`
 - `KEY idx_announcements_student (target_student_id)`
 - `KEY idx_announcements_published (published_at)`
 
-### 7.15.5 删除策略
+#### 6.15.5 删除策略
 
 - 删除发布用户时：`published_by` 置空
 - 删除目标学生时：`target_student_id` 置空
 
 这是典型的“保留公告主体，清空弱引用”的设计。
 
-### 7.15.6 代码中的主要用途
+#### 6.15.6 代码中的主要用途
 
 - 公告中心列表
 - 公告详情页
@@ -1165,15 +1179,15 @@ WHERE aw.student_id = ?;
 
 ---
 
-## 7.16 `course_sections`
+### 6.16 `course_sections`
 
-### 7.16.1 表定位
+#### 6.16.1 表定位
 
 `course_sections` 是整个系统最核心的业务表之一，表示“某门课程在某学期、由某教师、在某教室、某时间段”的一次具体开课。
 
 课程目录和开课实例的分离，正是靠 `courses` 与 `course_sections` 两表实现。
 
-### 7.16.2 关系说明
+#### 6.16.2 关系说明
 
 - `course_id -> courses.id`
 - `teacher_id -> teachers.id`
@@ -1183,7 +1197,7 @@ WHERE aw.student_id = ?;
 - 被 `enrollments.section_id` 引用
 - 被 `teaching_evaluations.section_id` 引用
 
-### 7.16.3 字段说明
+#### 6.16.3 字段说明
 
 | 字段 | 类型 | 可空 | 默认值 | 键/约束 | 详细说明 |
 |---|---|---|---|---|---|
@@ -1203,7 +1217,7 @@ WHERE aw.student_id = ?;
 | `created_at` | `DATETIME` | 否 | 当前时间 | 无 | 创建时间。 |
 | `updated_at` | `DATETIME` | 否 | 自动更新时间 | 无 | 更新时间。 |
 
-### 7.16.4 关键唯一约束
+#### 6.16.4 关键唯一约束
 
 - `UNIQUE uk_sections_teacher_slot (term_id, teacher_id, time_slot_id)`
   - 表示同一学期同一时间段，教师只能承担一门课
@@ -1212,13 +1226,13 @@ WHERE aw.student_id = ?;
 
 这两条约束从数据库层防止教师/教室冲突。
 
-### 7.16.5 检查约束
+#### 6.16.5 检查约束
 
 - 容量必须大于 0
 - `usual_weight`、`final_weight` 必须都在 0 到 100
 - 两者之和必须精确等于 100
 
-### 7.16.6 代码中的主要用途
+#### 6.16.6 代码中的主要用途
 
 - 学生在线选课
 - 学生课表 / 全校课表
@@ -1229,9 +1243,9 @@ WHERE aw.student_id = ?;
 
 ---
 
-## 7.17 `enrollments`
+### 6.17 `enrollments`
 
-### 7.17.1 表定位
+#### 6.17.1 表定位
 
 `enrollments` 是选课记录表，用于记录“学生是否选了某个开课”。它不是纯插入型流水表，而是保留状态，支持：
 
@@ -1240,14 +1254,14 @@ WHERE aw.student_id = ?;
 
 因此退课并不是直接删除，而是状态变更。
 
-### 7.17.2 关系说明
+#### 6.17.2 关系说明
 
 - `section_id -> course_sections.id`
 - `student_id -> students.id`
 - 被 `grades.enrollment_id` 引用
 - 被 `teaching_evaluations.enrollment_id` 引用
 
-### 7.17.3 字段说明
+#### 6.17.3 字段说明
 
 | 字段 | 类型 | 可空 | 默认值 | 键/约束 | 详细说明 |
 |---|---|---|---|---|---|
@@ -1260,13 +1274,13 @@ WHERE aw.student_id = ?;
 | `created_at` | `DATETIME` | 否 | 当前时间 | 无 | 创建时间。 |
 | `updated_at` | `DATETIME` | 否 | 自动更新时间 | 无 | 更新时间。 |
 
-### 7.17.4 唯一约束
+#### 6.17.4 唯一约束
 
 - `UNIQUE uk_enrollment_section_student (section_id, student_id)`
 
 这保证一个学生对同一开课只有一条记录。系统重新选回已退课记录时，是把状态从“已退课”改回“已选”，而不是插入第二条。
 
-### 7.17.5 索引
+#### 6.17.5 索引
 
 - `KEY idx_enrollments_student_status (student_id, status)`
 - `KEY idx_enrollments_section_status (section_id, status)`
@@ -1274,7 +1288,7 @@ WHERE aw.student_id = ?;
 
 最后一个组合索引是为教学评价表中的复合外键提供被引用键。
 
-### 7.17.6 代码中的主要用途
+#### 6.17.6 代码中的主要用途
 
 - 在线选课
 - 退课
@@ -1283,17 +1297,17 @@ WHERE aw.student_id = ?;
 
 ---
 
-## 7.18 `grades`
+### 6.18 `grades`
 
-### 7.18.1 表定位
+#### 6.18.1 表定位
 
 `grades` 是成绩表，与 `enrollments` 一对一。成绩并不是直接挂在开课或学生上，而是挂在“某学生对某开课的一次选课记录”上，这样语义最准确。
 
-### 7.18.2 关系说明
+#### 6.18.2 关系说明
 
 - `enrollment_id -> enrollments.id`
 
-### 7.18.3 字段说明
+#### 6.18.3 字段说明
 
 | 字段 | 类型 | 可空 | 默认值 | 键/约束 | 详细说明 |
 |---|---|---|---|---|---|
@@ -1309,13 +1323,13 @@ WHERE aw.student_id = ?;
 | `created_at` | `DATETIME` | 否 | 当前时间 | 无 | 创建时间。 |
 | `updated_at` | `DATETIME` | 否 | 自动更新时间 | 无 | 更新时间。 |
 
-### 7.18.4 关键设计点
+#### 6.18.4 关键设计点
 
 - 成绩允许存在但内容为空，这样学生一旦选课就能预创建成绩行
 - 发布状态与具体分数分离
 - 重新选课或退课恢复时，可直接重置原有成绩记录
 
-### 7.18.5 代码中的主要用途
+#### 6.18.5 代码中的主要用途
 
 - 教师录入成绩
 - 教师发布成绩
@@ -1325,9 +1339,9 @@ WHERE aw.student_id = ?;
 
 ---
 
-## 7.19 `teaching_evaluations`
+### 6.19 `teaching_evaluations`
 
-### 7.19.1 表定位
+#### 6.19.1 表定位
 
 `teaching_evaluations` 记录学生对已修或历史课程的教学评价。设计上非常严格，不仅保存选课 ID，还冗余保存：
 
@@ -1337,7 +1351,7 @@ WHERE aw.student_id = ?;
 
 并配合复合外键校验上下文一致。
 
-### 7.19.2 关系说明
+#### 6.19.2 关系说明
 
 - `enrollment_id -> enrollments.id`
 - `section_id -> course_sections.id`
@@ -1346,7 +1360,7 @@ WHERE aw.student_id = ?;
 - `(enrollment_id, section_id, student_id) -> enrollments`
 - `(section_id, teacher_id) -> course_sections`
 
-### 7.19.3 字段说明
+#### 6.19.3 字段说明
 
 | 字段 | 类型 | 可空 | 默认值 | 键/约束 | 详细说明 |
 |---|---|---|---|---|---|
@@ -1360,7 +1374,7 @@ WHERE aw.student_id = ?;
 | `created_at` | `DATETIME` | 否 | 当前时间 | 索引的一部分 | 评价创建时间。 |
 | `updated_at` | `DATETIME` | 否 | 自动更新时间 | 无 | 评价更新时间。支持修改评价内容。 |
 
-### 7.19.4 索引与约束
+#### 6.19.4 索引与约束
 
 - `KEY idx_evaluations_teacher (teacher_id, created_at)`
 - `KEY idx_evaluations_section (section_id, created_at)`
@@ -1368,7 +1382,7 @@ WHERE aw.student_id = ?;
 - `KEY idx_evaluations_enrollment_context (enrollment_id, section_id, student_id)`
 - `KEY idx_evaluations_section_teacher (section_id, teacher_id)`
 
-### 7.19.5 设计价值
+#### 6.19.5 设计价值
 
 该表通过多重外键保证评价上下文不被伪造：
 
@@ -1376,7 +1390,7 @@ WHERE aw.student_id = ?;
 - 不能把开课对应错教师
 - 不能脱离选课记录单独创建评价
 
-### 7.19.6 代码中的主要用途
+#### 6.19.6 代码中的主要用途
 
 - 学生评价提交与修改
 - 教师端评价反馈查看
@@ -1385,9 +1399,9 @@ WHERE aw.student_id = ?;
 
 ---
 
-## 7.20 `academic_warnings`
+### 6.20 `academic_warnings`
 
-### 7.20.1 表定位
+#### 6.20.1 表定位
 
 `academic_warnings` 用于记录管理员发出的学业预警。它不是简单的“公告类别”，而是一张独立业务表，支持：
 
@@ -1396,14 +1410,14 @@ WHERE aw.student_id = ?;
 - 记录未通过必修课程数量阈值
 - 可选关联一条公告
 
-### 7.20.2 关系说明
+#### 6.20.2 关系说明
 
 - `student_id -> students.id`
 - `term_id -> terms.id`
 - `issued_by -> admins.id`
 - `announcement_id -> announcements.id`
 
-### 7.20.3 字段说明
+#### 6.20.3 字段说明
 
 | 字段 | 类型 | 可空 | 默认值 | 键/约束 | 详细说明 |
 |---|---|---|---|---|---|
@@ -1417,13 +1431,13 @@ WHERE aw.student_id = ?;
 | `created_at` | `DATETIME` | 否 | 当前时间 | 索引的一部分 | 创建时间。 |
 | `updated_at` | `DATETIME` | 否 | 自动更新时间 | 无 | 更新时间。 |
 
-### 7.20.4 唯一约束
+#### 6.20.4 唯一约束
 
 - `UNIQUE uk_warning_student_term (student_id, term_id)`
 
 表示同一个学生在同一个学期最多一条学业预警。
 
-### 7.20.5 代码中的主要用途
+#### 6.20.5 代码中的主要用途
 
 - 管理端学生学业详情页
 - 学业预警发送
@@ -1431,21 +1445,21 @@ WHERE aw.student_id = ?;
 
 ---
 
-## 8. 跨表完整性设计总结
+## 7. 跨表完整性设计总结
 
-## 8.1 身份体系完整性
+### 7.1 身份体系完整性
 
 - `users` 与 `students/teachers/admins` 一对一
 - 角色共享统一登录入口
 - 角色扩展字段不混入基础账号表
 
-## 8.2 教学组织完整性
+### 7.2 教学组织完整性
 
 - 院系 -> 专业 -> 班级 -> 学生
 - 院系 -> 教师
 - 院系/专业 -> 课程
 
-## 8.3 教学业务完整性
+### 7.3 教学业务完整性
 
 - 课程目录与开课实例分离
 - 开课与选课分离
@@ -1453,7 +1467,7 @@ WHERE aw.student_id = ?;
 - 选课与评价绑定
 - 培养方案与课程映射单独建模
 
-## 8.4 删除异常控制
+### 7.4 删除异常控制
 
 本系统明确遵循“禁止危险级联删除”的原则。数据库层策略是：
 
@@ -1467,7 +1481,7 @@ WHERE aw.student_id = ?;
 - 删除教师前检查是否仍承担开课
 - 删除学期前检查是否仍有关联开课、预警等
 
-## 8.5 培养方案一致性
+### 7.5 培养方案一致性
 
 培养方案不是静态文档，而是结构化数据：
 
@@ -1481,9 +1495,9 @@ WHERE aw.student_id = ?;
 - 方案总学分 = 全部映射课程学分和
 - 学生毕业要求学分 = 培养方案总学分或默认值
 
-## 9. 典型字段在代码中的业务语义补充
+## 8. 典型字段在代码中的业务语义补充
 
-### 9.1 `terms.is_current`
+### 8.1 `terms.is_current`
 
 虽然数据库没有强制唯一“只能一条当前学期”，但代码中所有“当前学期”业务都假设只会查到一条：
 
@@ -1494,7 +1508,7 @@ WHERE aw.student_id = ?;
 
 因此管理员维护时必须保证业务上只有一个当前学期。
 
-### 9.2 `students.credits_required`
+### 8.2 `students.credits_required`
 
 该字段不是纯手工字段。它会被以下服务自动同步：
 
@@ -1504,26 +1518,26 @@ WHERE aw.student_id = ?;
 
 如果学生所在专业有关联培养方案，则该值会变成培养方案总学分；否则系统使用默认毕业要求学分。
 
-### 9.3 `course_sections.usual_weight / final_weight`
+### 8.3 `course_sections.usual_weight / final_weight`
 
 这两个字段是成绩计算的事实来源，不在 `grades` 表中重复保存。修改开课权重时，系统会批量重算该开课下全部学生总评。
 
-### 9.4 `grades.status`
+### 8.4 `grades.status`
 
 这是成绩是否“正式生效”的关键字段：
 
 - `待录入`：教师可继续修改，学生端不算正式通过/未通过成绩
 - `已发布`：学生端成绩查询、学习画像、培养方案状态判断都会生效
 
-### 9.5 `enrollments.status`
+### 8.5 `enrollments.status`
 
 这是选课记录的状态位，而不是“是否存在记录”的替代。系统保留退课历史，并允许把同一条记录从“已退课”恢复为“已选”。
 
-### 9.6 `announcements.target_student_id`
+### 8.6 `announcements.target_student_id`
 
 当公告只面向某个学生时，该字段记录学生 ID。若为空，则公告按 `target_role` 面向一类人或全部人广播。
 
-## 10. 当前种子数据与表结构的对应关系
+## 9. 当前种子数据与表结构的对应关系
 
 为了帮助理解字段含义，当前 `seed-db.js` 已经给出较完整的数据样例：
 
