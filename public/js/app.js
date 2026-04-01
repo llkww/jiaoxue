@@ -1329,9 +1329,15 @@ function appendProgramMapEdge(svg, start, end) {
     return;
   }
 
+  const d = `M ${start.x.toFixed(1)} ${start.y.toFixed(1)} L ${end.x.toFixed(1)} ${end.y.toFixed(1)}`;
+  const glowPath = createProgramMapSvgElement('path');
+  glowPath.setAttribute('class', 'program-tree-edge-glow');
+  glowPath.setAttribute('d', d);
+  svg.appendChild(glowPath);
+
   const path = createProgramMapSvgElement('path');
   path.setAttribute('class', 'program-tree-edge');
-  path.setAttribute('d', `M ${start.x.toFixed(1)} ${start.y.toFixed(1)} L ${end.x.toFixed(1)} ${end.y.toFixed(1)}`);
+  path.setAttribute('d', d);
   svg.appendChild(path);
 }
 
@@ -1378,45 +1384,51 @@ function renderProgramMap(graphElement) {
   svg.setAttribute('height', String(height));
 
   const containerRect = graphElement.getBoundingClientRect();
-  const branches = Array.from(graphElement.querySelectorAll('[data-map-branch]'));
 
-  if (!branches.length) {
-    return;
-  }
+  ['left', 'right'].forEach((side) => {
+    const branches = Array.from(graphElement.querySelectorAll(`[data-map-branch][data-map-side="${side}"]`));
 
-  const semesterBundles = branches
-    .map((branch) => {
-      const semesterNode = branch.querySelector('[data-map-semester-node]');
+    if (!branches.length) {
+      return;
+    }
 
-      if (!(semesterNode instanceof HTMLElement)) {
-        return null;
-      }
+    const semesterBundles = branches
+      .map((branch) => {
+        const semesterNode = branch.querySelector('[data-map-semester-node]');
 
-      const modulePoints = Array.from(branch.querySelectorAll('[data-map-module-node]'))
-        .filter((node) => node instanceof HTMLElement)
-        .map((node) => getProgramMapAnchor(node, 'right', containerRect));
+        if (!(semesterNode instanceof HTMLElement)) {
+          return null;
+        }
 
-      return {
-        incoming: getProgramMapAnchor(semesterNode, 'right', containerRect),
-        outgoing: getProgramMapAnchor(semesterNode, 'left', containerRect),
-        modulePoints
-      };
-    })
-    .filter(Boolean);
+        const incomingSide = side === 'left' ? 'right' : 'left';
+        const outgoingSide = side === 'left' ? 'left' : 'right';
+        const moduleSide = side === 'left' ? 'right' : 'left';
+        const modulePoints = Array.from(branch.querySelectorAll('[data-map-module-node]'))
+          .filter((node) => node instanceof HTMLElement)
+          .map((node) => getProgramMapAnchor(node, moduleSide, containerRect));
 
-  if (!semesterBundles.length) {
-    return;
-  }
+        return {
+          incoming: getProgramMapAnchor(semesterNode, incomingSide, containerRect),
+          outgoing: getProgramMapAnchor(semesterNode, outgoingSide, containerRect),
+          modulePoints
+        };
+      })
+      .filter(Boolean);
 
-  drawProgramMapBundle(
-    svg,
-    getProgramMapAnchor(rootNode, 'left', containerRect),
-    semesterBundles.map((bundle) => bundle.incoming),
-    'left'
-  );
+    if (!semesterBundles.length) {
+      return;
+    }
 
-  semesterBundles.forEach((bundle) => {
-    drawProgramMapBundle(svg, bundle.outgoing, bundle.modulePoints, 'left');
+    drawProgramMapBundle(
+      svg,
+      getProgramMapAnchor(rootNode, side === 'left' ? 'left' : 'right', containerRect),
+      semesterBundles.map((bundle) => bundle.incoming),
+      side
+    );
+
+    semesterBundles.forEach((bundle) => {
+      drawProgramMapBundle(svg, bundle.outgoing, bundle.modulePoints, side);
+    });
   });
 }
 

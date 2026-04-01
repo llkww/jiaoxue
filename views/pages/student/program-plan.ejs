@@ -17,7 +17,8 @@
     </div>
   <% } else { %>
     <% const summary = planDetail.summary; %>
-    <% const semesters = planDetail.semesters; %>
+    <% const leftSemesters = planDetail.semesters.slice(0, Math.ceil(planDetail.semesters.length / 2)); %>
+    <% const rightSemesters = planDetail.semesters.slice(Math.ceil(planDetail.semesters.length / 2)); %>
 
     <div class="panel workspace-panel program-plan-hero">
       <div class="section-head">
@@ -71,10 +72,10 @@
         <div class="program-tree-shell" data-program-map>
           <svg class="program-tree-connectors" data-map-connectors aria-hidden="true"></svg>
           <div class="program-tree-canvas" data-map-canvas>
-            <div class="program-tree-branches">
-              <% semesters.forEach(function(semester) { %>
-                <section class="program-tree-branch" data-map-branch>
-                  <div class="program-tree-module-stack" data-map-module-stack>
+            <div class="program-tree-side is-left" data-map-side="left">
+              <% leftSemesters.forEach(function(semester) { %>
+                <section class="program-tree-branch is-left" data-map-branch data-map-side="left">
+                  <div class="program-tree-module-stack is-left" data-map-module-stack>
                     <% semester.modules.forEach(function(module) {
                       const completedCredits = module.courses
                         .filter((course) => course.status === '通过')
@@ -145,6 +146,7 @@
                   <article
                     class="program-semester-node program-semester-node-mind program-tree-semester-card"
                     data-map-semester-node
+                    data-map-side="left"
                   >
                     <span class="status-pill is-neutral">学期节点</span>
                     <strong>第 <%= semester.semesterNo %> 学期</strong>
@@ -178,6 +180,90 @@
                 </div>
               </div>
             </article>
+
+            <div class="program-tree-side is-right" data-map-side="right">
+              <% rightSemesters.forEach(function(semester) { %>
+                <section class="program-tree-branch is-right" data-map-branch data-map-side="right">
+                  <article
+                    class="program-semester-node program-semester-node-mind program-tree-semester-card"
+                    data-map-semester-node
+                    data-map-side="right"
+                  >
+                    <span class="status-pill is-neutral">学期节点</span>
+                    <strong>第 <%= semester.semesterNo %> 学期</strong>
+                    <div class="muted-copy">点击模块卡片可查看课程详情</div>
+                  </article>
+
+                  <div class="program-tree-module-stack is-right" data-map-module-stack>
+                    <% semester.modules.forEach(function(module) {
+                      const completedCredits = module.courses
+                        .filter((course) => course.status === '通过')
+                        .reduce((sum, course) => sum + Number(course.credits || 0), 0);
+                      const selectedCredits = module.courses
+                        .filter((course) => course.isSelectedCurrent)
+                        .reduce((sum, course) => sum + Number(course.credits || 0), 0);
+                      const failedCount = module.courses.filter((course) => course.hasOutstandingFailure).length;
+                      const payload = encodeURIComponent(JSON.stringify({
+                        moduleName: module.moduleName,
+                        moduleType: module.moduleType,
+                        requiredCredits: module.requiredCredits,
+                        courses: module.courses
+                      }));
+                    %>
+                      <div class="program-tree-module-item">
+                        <button
+                          type="button"
+                          class="program-module-card program-module-card-mind"
+                          style="--module-accent:#146356"
+                          data-map-module-node
+                          data-plan-module-detail="<%= payload %>"
+                          data-bs-toggle="modal"
+                          data-bs-target="#program-plan-modal"
+                        >
+                          <div class="program-module-head">
+                            <div class="stack-gap-sm">
+                              <strong><%= module.moduleName %></strong>
+                              <span><%= module.moduleType %></span>
+                            </div>
+                            <span class="status-pill <%= failedCount > 0 ? 'is-negative' : selectedCredits > 0 ? 'is-warning' : 'is-neutral' %>">
+                              <%= failedCount > 0 ? `${failedCount} 门未通过` : selectedCredits > 0 ? '当前有在修课程' : '尚未开始修读' %>
+                            </span>
+                          </div>
+
+                          <div class="program-module-meta">
+                            <div>
+                              <span>要求学分</span>
+                              <strong><%= formatScore(module.requiredCredits) %></strong>
+                            </div>
+                            <div>
+                              <span>课程数量</span>
+                              <strong><%= formatCompactCount(module.courses.length) %></strong>
+                            </div>
+                            <div>
+                              <span>已修学分</span>
+                              <strong><%= formatScore(completedCredits) %></strong>
+                            </div>
+                          </div>
+
+                          <div class="program-module-track">
+                            <span style="width:<%= module.requiredCredits ? Math.min(100, (completedCredits / module.requiredCredits) * 100) : 0 %>%"></span>
+                          </div>
+
+                          <div class="program-module-tags">
+                            <span class="program-course-chip <%= completedCredits >= module.requiredCredits ? 'is-success' : '' %>">
+                              已完成 <%= formatScore(completedCredits) %> 学分
+                            </span>
+                            <% if (selectedCredits > 0) { %>
+                              <span class="program-course-chip">在修 <%= formatScore(selectedCredits) %> 学分</span>
+                            <% } %>
+                          </div>
+                        </button>
+                      </div>
+                    <% }) %>
+                  </div>
+                </section>
+              <% }) %>
+            </div>
           </div>
         </div>
       </div>
